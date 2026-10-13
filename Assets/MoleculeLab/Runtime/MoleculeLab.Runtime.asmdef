@@ -1,0 +1,1 @@
+{"name": "MoleculeLab.Runtime", "rootNamespace": "MoleculeLab", "references": ["Unity.XR.Interaction.Toolkit", "Unity.XR.CoreUtils", "Unity.XR.OpenXR", "Unity.XR.MetaOpenXR", "Unity.InputSystem", "Unity.TextMeshPro", "UnityEngine.UI", "Unity.XR.Hands"], "autoReferenced": true}

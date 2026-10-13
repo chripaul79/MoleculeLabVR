@@ -1,0 +1,5 @@
+Result: Succeeded
+Size: 1672406720
+Duration: 00:02:54.7980300
+Errors: 0
+Warnings: 402

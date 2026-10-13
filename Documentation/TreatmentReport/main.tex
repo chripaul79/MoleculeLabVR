@@ -1,0 +1,29 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=22mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype,graphicx,booktabs,tabularx,array,enumitem,xcolor,tikz,fancyhdr}
+\usetikzlibrary{arrows.meta,positioning,calc,fit}
+\usepackage[colorlinks=true,urlcolor=teal,linkcolor=teal,citecolor=teal]{hyperref}
+\definecolor{ink}{HTML}{17353C}
+\definecolor{accent}{HTML}{22776D}
+\definecolor{pale}{HTML}{EAF1EF}
+\pagestyle{fancy}\fancyhf{}\fancyhead[L]{\small MOLECULE LAB / DESIGN TREATMENT}\fancyhead[R]{\small Working draft}\fancyfoot[R]{\thepage}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\setlength{\headheight}{14pt}\setlength{\parindent}{0pt}\setlength{\parskip}{6pt}
+\setlist[itemize]{nosep,leftmargin=1.3em}
+\newcommand{\pending}[1]{\par\noindent\fcolorbox{accent}{pale}{\parbox{.94\linewidth}{\textbf{Evidence to collect.} #1}}\par}
+\newcommand{\placeholder}[2]{\fbox{\parbox[c][#1][c]{.93\linewidth}{\centering\textcolor{accent}{#2}}}}
+\tikzset{state/.style={draw=accent,rounded corners,fill=pale,align=center,text width=32mm,minimum height=12mm,font=\small}, flow/.style={-{Latex},thick,draw=accent}}
+\begin{document}
+\input{sections/01-concept}
+\clearpage\input{sections/02-scene}
+\clearpage\input{sections/02b-preview}
+\clearpage\input{sections/02c-expansion-preview}
+\clearpage\input{sections/03-inventory}
+\clearpage\input{sections/04-bonding}
+\clearpage\input{sections/04b-expansion}
+\clearpage\input{sections/05-audiovisual}
+\clearpage\input{sections/06-evaluation}
+\clearpage\input{sections/07-status}
+\clearpage\bibliographystyle{plain}\bibliography{references}
+\end{document}

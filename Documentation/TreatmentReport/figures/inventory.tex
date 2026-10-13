@@ -1,0 +1,8 @@
+\begin{center}
+\begin{tikzpicture}[node distance=7mm]
+\node[state,text width=24mm] (s) {Shelf};\node[state,text width=24mm,right=of s] (l) {Loose / held};\node[state,text width=24mm,right=of l] (m) {Molecule};\node[state,text width=24mm,right=of m] (r) {Fragments / products};
+\draw[flow] (s)--(l);\draw[flow] (l)--(m);\draw[flow] (m)--(r);
+\draw[flow] (r.south)--++(0,-.55)-| node[pos=.3,below,font=\small]{Return / recycle / reset} (s.south);
+\end{tikzpicture}
+\par\small Figure 3. Ownership changes; total element counts remain constant.
+\end{center}

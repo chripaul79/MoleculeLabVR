@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="64" result="Passed" total="64" passed="64" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-29 11:52:32Z" end-time="2026-09-29 11:52:37Z" duration="5.5198408">
+  <test-suite type="TestSuite" id="1000" name="Molecule Lab VR" fullname="Molecule Lab VR" runstate="Runnable" testcasecount="64" result="Passed" start-time="2026-09-29 11:52:32Z" end-time="2026-09-29 11:52:37Z" duration="5.519841" total="64" passed="64" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1079" name="MoleculeLab.Tests.dll" fullname="/Users/henning/VR-project/Library/ScriptAssemblies/MoleculeLab.Tests.dll" runstate="Runnable" testcasecount="64" result="Passed" start-time="2026-09-29 11:52:33Z" end-time="2026-09-29 11:52:37Z" duration="4.790830" total="64" passed="64" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="74856" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1080" name="MoleculeLab" fullname="MoleculeLab" runstate="Runnable" testcasecount="64" result="Passed" start-time="2026-09-29 11:52:33Z" end-time="2026-09-29 11:52:37Z" duration="4.789627" total="64" passed="64" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1081" name="Tests" fullname="MoleculeLab.Tests" runstate="Runnable" testcasecount="64" result="Passed" start-time="2026-09-29 11:52:33Z" end-time="2026-09-29 11:52:37Z" duration="4.788377" total="64" passed="64" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1001" name="ChemistryTests" fullname="MoleculeLab.Tests.ChemistryTests" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" testcasecount="22" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.052426" total="22" passed="22" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="ParameterizedMethod" id="1008" name="AuthoredDefinitionsAreValid" fullname="MoleculeLab.Tests.ChemistryTests.AuthoredDefinitionsAreValid" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.024479" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1002" name="AuthoredDefinitionsAreValid(&quot;Water&quot;)" fullname="MoleculeLab.Tests.ChemistryTests.AuthoredDefinitionsAreValid(&quot;Water&quot;)" methodname="AuthoredDefinitionsAreValid" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="529966482" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.014620" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1003" name="AuthoredDefinitionsAreValid(&quot;Methane&quot;)" fullname="MoleculeLab.Tests.ChemistryTests.AuthoredDefinitionsAreValid(&quot;Methane&quot;)" methodname="AuthoredDefinitionsAreValid" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="1323644969" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.001070" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1004" name="AuthoredDefinitionsAreValid(&quot;Ethane&quot;)" fullname="MoleculeLab.Tests.ChemistryTests.AuthoredDefinitionsAreValid(&quot;Ethane&quot;)" methodname="AuthoredDefinitionsAreValid" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="1002662592" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.001363" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1005" name="AuthoredDefinitionsAreValid(&quot;Hydrogen&quot;)" fullname="MoleculeLab.Tests.ChemistryTests.AuthoredDefinitionsAreValid(&quot;Hydrogen&quot;)" methodname="AuthoredDefinitionsAreValid" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="849265486" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000493" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1006" name="AuthoredDefinitionsAreValid(&quot;Oxygen&quot;)" fullname="MoleculeLab.Tests.ChemistryTests.AuthoredDefinitionsAreValid(&quot;Oxygen&quot;)" methodname="AuthoredDefinitionsAreValid" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="1429219680" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000295" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1007" name="AuthoredDefinitionsAreValid(&quot;Methylradical&quot;)" fullname="MoleculeLab.Tests.ChemistryTests.AuthoredDefinitionsAreValid(&quot;Methylradical&quot;)" methodname="AuthoredDefinitionsAreValid" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="1901932408" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000428" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-case id="1013" name="BreakingAndRejoiningConservesAllAtoms" fullname="MoleculeLab.Tests.ChemistryTests.BreakingAndRejoiningConservesAllAtoms" methodname="BreakingAndRejoiningConservesAllAtoms" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="116876720" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.006860" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1012" name="CompletionEventFiresOnce" fullname="MoleculeLab.Tests.ChemistryTests.CompletionEventFiresOnce" methodname="CompletionEventFiresOnce" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="620025910" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000558" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1011" name="DisconnectedPlacementRejected" fullname="MoleculeLab.Tests.ChemistryTests.DisconnectedPlacementRejected" methodname="DisconnectedPlacementRejected" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="1236220655" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000175" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1016" name="DuplicateObjectIsNotTwoReactants" fullname="MoleculeLab.Tests.ChemistryTests.DuplicateObjectIsNotTwoReactants" methodname="DuplicateObjectIsNotTwoReactants" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="365139564" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.002537" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1025" name="EthaneLocalGeometryIsTetrahedral" fullname="MoleculeLab.Tests.ChemistryTests.EthaneLocalGeometryIsTetrahedral" methodname="EthaneLocalGeometryIsTetrahedral" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="1431609095" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.001376" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1014" name="IncompleteMoleculeCannotBreak" fullname="MoleculeLab.Tests.ChemistryTests.IncompleteMoleculeCannotBreak" methodname="IncompleteMoleculeCannotBreak" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="1369066977" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000130" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1018" name="IncompleteReactantRejected" fullname="MoleculeLab.Tests.ChemistryTests.IncompleteReactantRejected" methodname="IncompleteReactantRejected" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="966046517" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000227" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1017" name="MissingOrWrongReactantsNotConsumed" fullname="MoleculeLab.Tests.ChemistryTests.MissingOrWrongReactantsNotConsumed" methodname="MissingOrWrongReactantsNotConsumed" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="1818287813" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.002638" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1010" name="OccupiedSiteCannotBeReplaced" fullname="MoleculeLab.Tests.ChemistryTests.OccupiedSiteCannotBeReplaced" methodname="OccupiedSiteCannotBeReplaced" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="1210581041" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000207" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1015" name="ReactionIsBalancedAndProductsReusable" fullname="MoleculeLab.Tests.ChemistryTests.ReactionIsBalancedAndProductsReusable" methodname="ReactionIsBalancedAndProductsReusable" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="109135695" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.001909" asserts="0">
+              <properties />
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1023" name="ScaleHasAbsoluteBounds" fullname="MoleculeLab.Tests.ChemistryTests.ScaleHasAbsoluteBounds" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.001741" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1020" name="ScaleHasAbsoluteBounds(0.01f,0.25f)" fullname="MoleculeLab.Tests.ChemistryTests.ScaleHasAbsoluteBounds(0.01f,0.25f)" methodname="ScaleHasAbsoluteBounds" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="1573316623" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000194" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1021" name="ScaleHasAbsoluteBounds(1.0f,1.0f)" fullname="MoleculeLab.Tests.ChemistryTests.ScaleHasAbsoluteBounds(1.0f,1.0f)" methodname="ScaleHasAbsoluteBounds" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="1700565280" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000037" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1022" name="ScaleHasAbsoluteBounds(10.0f,6.0f)" fullname="MoleculeLab.Tests.ChemistryTests.ScaleHasAbsoluteBounds(10.0f,6.0f)" methodname="ScaleHasAbsoluteBounds" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="1163990162" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000034" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-case id="1019" name="UnbalancedRecipeRejected" fullname="MoleculeLab.Tests.ChemistryTests.UnbalancedRecipeRejected" methodname="UnbalancedRecipeRejected" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="2132734797" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000835" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1024" name="WaterAndMethaneAnglesMatchReference" fullname="MoleculeLab.Tests.ChemistryTests.WaterAndMethaneAnglesMatchReference" methodname="WaterAndMethaneAnglesMatchReference" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="662526151" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000367" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1009" name="WrongElementDoesNotMutateSite" fullname="MoleculeLab.Tests.ChemistryTests.WrongElementDoesNotMutateSite" methodname="WrongElementDoesNotMutateSite" classname="MoleculeLab.Tests.ChemistryTests" runstate="Runnable" seed="1574080719" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000445" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1026" name="ExpandedChemistryTests" fullname="MoleculeLab.Tests.ExpandedChemistryTests" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" testcasecount="19" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.016643" total="19" passed="19" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="ParameterizedMethod" id="1041" name="AuthoredHybridizationAngles" fullname="MoleculeLab.Tests.ExpandedChemistryTests.AuthoredHybridizationAngles" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.003107" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1035" name="AuthoredHybridizationAngles(&quot;Ethene&quot;,0,120.0f)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.AuthoredHybridizationAngles(&quot;Ethene&quot;,0,120.0f)" methodname="AuthoredHybridizationAngles" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="497652699" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.001245" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1036" name="AuthoredHybridizationAngles(&quot;Ethyne&quot;,0,180.0f)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.AuthoredHybridizationAngles(&quot;Ethyne&quot;,0,180.0f)" methodname="AuthoredHybridizationAngles" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="647602334" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000310" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1037" name="AuthoredHybridizationAngles(&quot;CarbonDioxide&quot;,0,180.0f)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.AuthoredHybridizationAngles(&quot;CarbonDioxide&quot;,0,180.0f)" methodname="AuthoredHybridizationAngles" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="1633893332" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000190" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1038" name="AuthoredHybridizationAngles(&quot;Methanol&quot;,0,109.471f)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.AuthoredHybridizationAngles(&quot;Methanol&quot;,0,109.471f)" methodname="AuthoredHybridizationAngles" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="72143071" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000202" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1039" name="AuthoredHybridizationAngles(&quot;Ethanol&quot;,0,109.471f)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.AuthoredHybridizationAngles(&quot;Ethanol&quot;,0,109.471f)" methodname="AuthoredHybridizationAngles" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="506846619" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000190" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1040" name="AuthoredHybridizationAngles(&quot;Ethanol&quot;,1,109.471f)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.AuthoredHybridizationAngles(&quot;Ethanol&quot;,1,109.471f)" methodname="AuthoredHybridizationAngles" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="82894870" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000050" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-case id="1034" name="BenzeneClosureAndEquivalentGeometry" fullname="MoleculeLab.Tests.ExpandedChemistryTests.BenzeneClosureAndEquivalentGeometry" methodname="BenzeneClosureAndEquivalentGeometry" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="974452608" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.001575" asserts="0">
+              <properties />
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1047" name="ConditionsAndConservation" fullname="MoleculeLab.Tests.ExpandedChemistryTests.ConditionsAndConservation" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.007165" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1043" name="ConditionsAndConservation(&quot;WaterReaction&quot;)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.ConditionsAndConservation(&quot;WaterReaction&quot;)" methodname="ConditionsAndConservation" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="1334163826" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.001239" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1044" name="ConditionsAndConservation(&quot;MethaneCombustion&quot;)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.ConditionsAndConservation(&quot;MethaneCombustion&quot;)" methodname="ConditionsAndConservation" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="2115649608" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000726" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1045" name="ConditionsAndConservation(&quot;EtheneHydrogenation&quot;)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.ConditionsAndConservation(&quot;EtheneHydrogenation&quot;)" methodname="ConditionsAndConservation" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="143363836" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000621" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1046" name="ConditionsAndConservation(&quot;EtheneHydration&quot;)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.ConditionsAndConservation(&quot;EtheneHydration&quot;)" methodname="ConditionsAndConservation" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="948803064" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.003811" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-suite type="ParameterizedMethod" id="1033" name="ExpandedDefinitionsValidateAndBuild" fullname="MoleculeLab.Tests.ExpandedChemistryTests.ExpandedDefinitionsValidateAndBuild" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.002143" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1027" name="ExpandedDefinitionsValidateAndBuild(&quot;Ethene&quot;)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.ExpandedDefinitionsValidateAndBuild(&quot;Ethene&quot;)" methodname="ExpandedDefinitionsValidateAndBuild" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="1600840979" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000322" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1028" name="ExpandedDefinitionsValidateAndBuild(&quot;Ethyne&quot;)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.ExpandedDefinitionsValidateAndBuild(&quot;Ethyne&quot;)" methodname="ExpandedDefinitionsValidateAndBuild" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="1480324007" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000082" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1029" name="ExpandedDefinitionsValidateAndBuild(&quot;Methanol&quot;)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.ExpandedDefinitionsValidateAndBuild(&quot;Methanol&quot;)" methodname="ExpandedDefinitionsValidateAndBuild" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="1508323131" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000095" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1030" name="ExpandedDefinitionsValidateAndBuild(&quot;Ethanol&quot;)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.ExpandedDefinitionsValidateAndBuild(&quot;Ethanol&quot;)" methodname="ExpandedDefinitionsValidateAndBuild" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="874934488" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000112" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1031" name="ExpandedDefinitionsValidateAndBuild(&quot;CarbonDioxide&quot;)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.ExpandedDefinitionsValidateAndBuild(&quot;CarbonDioxide&quot;)" methodname="ExpandedDefinitionsValidateAndBuild" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="2089693589" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000073" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1032" name="ExpandedDefinitionsValidateAndBuild(&quot;Benzene&quot;)" fullname="MoleculeLab.Tests.ExpandedChemistryTests.ExpandedDefinitionsValidateAndBuild(&quot;Benzene&quot;)" methodname="ExpandedDefinitionsValidateAndBuild" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="293043637" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000151" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-case id="1048" name="HandGestureCannotChangeTargetsUntilRelease" fullname="MoleculeLab.Tests.ExpandedChemistryTests.HandGestureCannotChangeTargetsUntilRelease" methodname="HandGestureCannotChangeTargetsUntilRelease" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="667572284" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000409" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1042" name="IncorrectFormulaAndValenceRejected" fullname="MoleculeLab.Tests.ExpandedChemistryTests.IncorrectFormulaAndValenceRejected" methodname="IncorrectFormulaAndValenceRejected" classname="MoleculeLab.Tests.ExpandedChemistryTests" runstate="Runnable" seed="1096055390" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000655" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1049" name="HandInteractionTests" fullname="MoleculeLab.Tests.HandInteractionTests" classname="MoleculeLab.Tests.HandInteractionTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.342467" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1055" name="AcquisitionUsesSurfaceMarginAndStableNearestAtom" fullname="MoleculeLab.Tests.HandInteractionTests.AcquisitionUsesSurfaceMarginAndStableNearestAtom" methodname="AcquisitionUsesSurfaceMarginAndStableNearestAtom" classname="MoleculeLab.Tests.HandInteractionTests" runstate="Runnable" seed="1578263093" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.075732" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1054" name="CandidateRequiresOneCentimetreAdvantage" fullname="MoleculeLab.Tests.HandInteractionTests.CandidateRequiresOneCentimetreAdvantage" methodname="CandidateRequiresOneCentimetreAdvantage" classname="MoleculeLab.Tests.HandInteractionTests" runstate="Runnable" seed="433366212" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000137" asserts="0">
+              <properties />
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1053" name="EarlyPinchHasBoundedAcquisitionWindow" fullname="MoleculeLab.Tests.HandInteractionTests.EarlyPinchHasBoundedAcquisitionWindow" classname="MoleculeLab.Tests.HandInteractionTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.007733" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1051" name="EarlyPinchHasBoundedAcquisitionWindow(0.14f,True)" fullname="MoleculeLab.Tests.HandInteractionTests.EarlyPinchHasBoundedAcquisitionWindow(0.14f,True)" methodname="EarlyPinchHasBoundedAcquisitionWindow" classname="MoleculeLab.Tests.HandInteractionTests" runstate="Runnable" seed="1045318056" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.001131" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1052" name="EarlyPinchHasBoundedAcquisitionWindow(0.16f,False)" fullname="MoleculeLab.Tests.HandInteractionTests.EarlyPinchHasBoundedAcquisitionWindow(0.16f,False)" methodname="EarlyPinchHasBoundedAcquisitionWindow" classname="MoleculeLab.Tests.HandInteractionTests" runstate="Runnable" seed="1220898062" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:48Z" duration="0.000045" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-case id="1057" name="NearFarPinchProducesRealPointerEventsAndCancelsWithoutClick" fullname="MoleculeLab.Tests.HandInteractionTests.NearFarPinchProducesRealPointerEventsAndCancelsWithoutClick" methodname="NearFarPinchProducesRealPointerEventsAndCancelsWithoutClick" classname="MoleculeLab.Tests.HandInteractionTests" runstate="Runnable" seed="1213649181" result="Passed" start-time="2026-09-29 11:51:48Z" end-time="2026-09-29 11:51:56Z" duration="8.330193" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+              <output><![CDATA[Your project uses a scriptable render pipeline. You can use Camera.stereoTargetEye only with the built-in renderer.
+Missing XR Origin. Disabling distance-based velocity scaling on this NearFar (UnityEngine.XR.Interaction.Toolkit.Attachment.InteractionAttachController).
+]]></output>
+            </test-case>
+            <test-case id="1056" name="OldManualQueueCanStarveWhileImmediateReaderCannot" fullname="MoleculeLab.Tests.HandInteractionTests.OldManualQueueCanStarveWhileImmediateReaderCannot" methodname="OldManualQueueCanStarveWhileImmediateReaderCannot" classname="MoleculeLab.Tests.HandInteractionTests" runstate="Runnable" seed="588228365" result="Passed" start-time="2026-09-29 11:51:56Z" end-time="2026-09-29 11:52:09Z" duration="12.892495" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+            </test-case>
+            <test-case id="1050" name="PinchThresholdsAndOwnershipAreStable" fullname="MoleculeLab.Tests.HandInteractionTests.PinchThresholdsAndOwnershipAreStable" methodname="PinchThresholdsAndOwnershipAreStable" classname="MoleculeLab.Tests.HandInteractionTests" runstate="Runnable" seed="1585550046" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.001193" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1058" name="InventoryPlacementTests" fullname="MoleculeLab.Tests.InventoryPlacementTests" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" testcasecount="12" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.008814" total="12" passed="12" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="ParameterizedMethod" id="1071" name="AngleBoundary" fullname="MoleculeLab.Tests.InventoryPlacementTests.AngleBoundary" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.003890" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1069" name="AngleBoundary(14.9f,True)" fullname="MoleculeLab.Tests.InventoryPlacementTests.AngleBoundary(14.9f,True)" methodname="AngleBoundary" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" seed="1439959334" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.003373" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1070" name="AngleBoundary(15.1f,False)" fullname="MoleculeLab.Tests.InventoryPlacementTests.AngleBoundary(15.1f,False)" methodname="AngleBoundary" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" seed="2004195904" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.000077" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-case id="1072" name="CoincidentAnchorCannotSnap" fullname="MoleculeLab.Tests.InventoryPlacementTests.CoincidentAnchorCannotSnap" methodname="CoincidentAnchorCannotSnap" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" seed="33581988" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.000142" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1063" name="CorrectTargetIsReady" fullname="MoleculeLab.Tests.InventoryPlacementTests.CorrectTargetIsReady" methodname="CorrectTargetIsReady" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" seed="88409325" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.000110" asserts="0">
+              <properties />
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1068" name="DistanceBoundary" fullname="MoleculeLab.Tests.InventoryPlacementTests.DistanceBoundary" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.000678" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1066" name="DistanceBoundary(0.049f,True)" fullname="MoleculeLab.Tests.InventoryPlacementTests.DistanceBoundary(0.049f,True)" methodname="DistanceBoundary" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" seed="899157875" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.000135" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1067" name="DistanceBoundary(0.051f,False)" fullname="MoleculeLab.Tests.InventoryPlacementTests.DistanceBoundary(0.051f,False)" methodname="DistanceBoundary" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" seed="1828224539" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.000040" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-case id="1060" name="DuplicateConsumptionCannotTransferAgain" fullname="MoleculeLab.Tests.InventoryPlacementTests.DuplicateConsumptionCannotTransferAgain" methodname="DuplicateConsumptionCannotTransferAgain" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" seed="972173192" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.001269" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1061" name="ExhaustionAndRecyclingRestoreExactlyOriginalStock" fullname="MoleculeLab.Tests.InventoryPlacementTests.ExhaustionAndRecyclingRestoreExactlyOriginalStock" methodname="ExhaustionAndRecyclingRestoreExactlyOriginalStock" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" seed="845544103" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.000354" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1059" name="InitialInventoryMatchesFiniteShelf" fullname="MoleculeLab.Tests.InventoryPlacementTests.InitialInventoryMatchesFiniteShelf" methodname="InitialInventoryMatchesFiniteShelf" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" seed="1598470433" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.000145" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1062" name="InvalidOwnersAndIdsCannotMutateInventory" fullname="MoleculeLab.Tests.InventoryPlacementTests.InvalidOwnersAndIdsCannotMutateInventory" methodname="InvalidOwnersAndIdsCannotMutateInventory" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" seed="1498351168" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.000132" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1065" name="NearbyButWrongDirectionIsNotReady" fullname="MoleculeLab.Tests.InventoryPlacementTests.NearbyButWrongDirectionIsNotReady" methodname="NearbyButWrongDirectionIsNotReady" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" seed="889272123" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.000125" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1064" name="WrongElementNeverPreviewsOrCommits" fullname="MoleculeLab.Tests.InventoryPlacementTests.WrongElementNeverPreviewsOrCommits" methodname="WrongElementNeverPreviewsOrCommits" classname="MoleculeLab.Tests.InventoryPlacementTests" runstate="Runnable" seed="1630036176" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:09Z" duration="0.000097" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1073" name="LabPlaythroughTests" fullname="MoleculeLab.Tests.LabPlaythroughTests" classname="MoleculeLab.Tests.LabPlaythroughTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-29 11:52:33Z" end-time="2026-09-29 11:52:37Z" duration="4.761841" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1074" name="ExpandedCatalogueAndReactionPlaythrough" fullname="MoleculeLab.Tests.LabPlaythroughTests.ExpandedCatalogueAndReactionPlaythrough" methodname="ExpandedCatalogueAndReactionPlaythrough" classname="MoleculeLab.Tests.LabPlaythroughTests" runstate="Runnable" seed="1038458411" result="Passed" start-time="2026-09-29 11:52:09Z" end-time="2026-09-29 11:52:25Z" duration="15.411290" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+              </properties>
+            </test-case>
+            <test-case id="1075" name="FullLessonAndResetSmokeTest" fullname="MoleculeLab.Tests.LabPlaythroughTests.FullLessonAndResetSmokeTest" methodname="FullLessonAndResetSmokeTest" classname="MoleculeLab.Tests.LabPlaythroughTests" runstate="Runnable" seed="1743933117" result="Passed" start-time="2026-09-29 11:52:25Z" end-time="2026-09-29 11:52:37Z" duration="12.826783" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+          </test-suite>
+          <test-suite type="TestFixture" id="1076" name="SceneConfigurationTests" fullname="MoleculeLab.Tests.SceneConfigurationTests" classname="MoleculeLab.Tests.SceneConfigurationTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-29 11:52:37Z" end-time="2026-09-29 11:52:37Z" duration="0.009258" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1077" name="BothHandsUseNearFarObjectsAndMenus" fullname="MoleculeLab.Tests.SceneConfigurationTests.BothHandsUseNearFarObjectsAndMenus" methodname="BothHandsUseNearFarObjectsAndMenus" classname="MoleculeLab.Tests.SceneConfigurationTests" runstate="Runnable" seed="1870219523" result="Passed" start-time="2026-09-29 11:52:37Z" end-time="2026-09-29 11:52:37Z" duration="0.001404" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1078" name="FixedShelfClearsWorkbenchAndGrabTargetsDoNotOverlap" fullname="MoleculeLab.Tests.SceneConfigurationTests.FixedShelfClearsWorkbenchAndGrabTargetsDoNotOverlap" methodname="FixedShelfClearsWorkbenchAndGrabTargetsDoNotOverlap" classname="MoleculeLab.Tests.SceneConfigurationTests" runstate="Runnable" seed="317693920" result="Passed" start-time="2026-09-29 11:52:37Z" end-time="2026-09-29 11:52:37Z" duration="0.006871" asserts="0">
+              <properties>
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Saving results to: /Users/henning/Library/Application Support/Molecule Lab/Molecule Lab VR/TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

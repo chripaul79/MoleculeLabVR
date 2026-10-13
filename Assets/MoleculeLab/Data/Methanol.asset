@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5338e0a8341a49ff9f4d869ab7c27f5, type: 3}
+  m_Name: Methanol
+  m_EditorClassIdentifier: MoleculeLab.Runtime::MoleculeLab.MoleculeDefinition
+  id: methanol
+  displayName: Methanol
+  formula: CH3OH
+  geometry: 'Tetrahedral carbon / 109.47 deg; bent C-O-H / approx. 108.5 deg
+
+    Idealized geometry; enlarged educational model.'
+  atoms:
+  - element: {fileID: 11400000, guid: 93f16dbc4e5274066a8ea93a2b3bd430, type: 2}
+    position: {x: 0, y: 0, z: 0}
+  - element: {fileID: 11400000, guid: db49ee50abbec4f29a24c18c50894503, type: 2}
+    position: {x: 0.109696545, y: 0.109696545, z: 0.109696545}
+  - element: {fileID: 11400000, guid: d4a699652a1754ff89f493aaf0ab1deb, type: 2}
+    position: {x: 0.09237604, y: -0.09237604, z: -0.09237604}
+  - element: {fileID: 11400000, guid: d4a699652a1754ff89f493aaf0ab1deb, type: 2}
+    position: {x: -0.09237604, y: 0.09237604, z: -0.09237604}
+  - element: {fileID: 11400000, guid: d4a699652a1754ff89f493aaf0ab1deb, type: 2}
+    position: {x: -0.09237604, y: -0.09237604, z: 0.09237604}
+  - element: {fileID: 11400000, guid: d4a699652a1754ff89f493aaf0ab1deb, type: 2}
+    position: {x: 0.19239695, y: 0.023986042, z: 0.19239695}
+  bonds:
+  - a: 0
+    b: 1
+    order: 1
+  - a: 0
+    b: 2
+    order: 1
+  - a: 0
+    b: 3
+    order: 1
+  - a: 0
+    b: 4
+    order: 1
+  - a: 1
+    b: 5
+    order: 1
+  seedIndex: 0
+  rotatableBond: -1
+  rotatingSites: 
+  isRadical: 0
+  molecularFormula: CH4O
+  electronicState: 
+  radicalSites: 
+  aromaticRing: 

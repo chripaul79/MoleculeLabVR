@@ -1,0 +1,1 @@
+{"name":"MoleculeLab.Tests","references":["MoleculeLab.Runtime","Unity.XR.Interaction.Toolkit","Unity.TextMeshPro","UnityEngine.UI"],"includePlatforms":["Editor"],"optionalUnityReferences":["TestAssemblies"]}

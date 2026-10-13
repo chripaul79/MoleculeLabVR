@@ -1,0 +1,21 @@
+\section*{Implementation status and next steps}
+\input{sections/verification}
+
+\section*{Architecture and editable content}
+The academic environment is an editable prefab in the MoleculeLab Environment folder. Runtime initialization uses its bench, tray, panel and socket references. Chemistry definition generation preserves the existing scene. Decorators should edit the prefab or scene, not regenerate the environment to make small changes.
+
+AtomInventory owns the finite token ledger. Loose atoms and molecule views reference identities; reactions and fragment operations transfer ownership. BondPlacement is the common pure placement evaluator; BondPreview presents its outcome. This separation supports testing rules independently of headset input.
+
+The catalogue now includes H2O, CH4, C2H6, H2, O2, C2H4, C2H2, CH3OH, C2H5OH, CO2 and C6H6. A new molecule requires authored geometry and bonds, an inventory feasibility check and interaction testing. Arbitrary structure generation remains outside this treatment.
+
+\section*{Outstanding design evidence}
+\begin{itemize}
+\item Reach all basket sockets while seated and standing without leaning through the table.
+\item Verify that fixed room detail is understood as scenery and does not distract from atoms.
+\item Tune cue thresholds after observing wrong-angle and wrong-element attempts.
+\item Check text, muted audio, reduced effects and visibility with both hands and controllers.
+\item Confirm balanced chemistry labels with an appropriate course reviewer.
+\end{itemize}
+
+\placeholder{35mm}{Actual Quest screenshot --- pending device session}
+

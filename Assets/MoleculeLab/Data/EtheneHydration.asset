@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab9b045863fe1422d93cbd9e346758fb, type: 3}
+  m_Name: EtheneHydration
+  m_EditorClassIdentifier: MoleculeLab.Runtime::MoleculeLab.ReactionDefinition
+  id: ethene-hydration
+  title: Ethene hydration
+  equation: C2H4 + H2O <=> C2H5OH
+  requiredCondition: 3
+  reversible: 1
+  conditions: Acid-catalyzed hydration; equilibrium depends on conditions
+  sources:
+  - https://openstax.org/books/organic-chemistry/pages/17-3-preparation-of-alcohols-a-review
+  explanation: Water adds across C=C. Acid is catalytic. This animation shows only the forward net transformation, not the mechanism, equilibrium yield or complete conversion.
+  inputs:
+  - molecule: {fileID: 11400000, guid: b7744e664b6ac4c66bf34f5b94b1107a, type: 2}
+    count: 1
+  - molecule: {fileID: 11400000, guid: 248c02d5f0e484ca680f66c8e1fdd260, type: 2}
+    count: 1
+  outputs:
+  - molecule: {fileID: 11400000, guid: 2c76758f2a67b40cb8d773f564857c70, type: 2}
+    count: 1
