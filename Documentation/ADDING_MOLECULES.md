@@ -54,3 +54,6 @@ Definition generation now preserves the scene. It still intentionally updates th
 Reaction definitions have identity, title, required condition, conditions text, reversibility and references. Register them in `LabController.reactions`; register molecules in `LabController.molecules`. The tray and paginated menu use these arrays. `ReactionEngine.CanReact` and `TryReact` take the selected `ReactionCondition`; omitted conditions default to None and cannot authorize the curated reactions. Inventory feasibility and whole-scene tests are required before adding a recipe.
 
 `LabUpgrade.Apply` is an explicit migration tool that updates the curated catalogue, rig and shelf layout. It is not run automatically at startup. Do not invoke it to preserve custom scene adjustments; edit the project-owned prefabs instead.
+
+## Free-build discoveries (26 October update)
+Molecules identified through FREE BUILD are runtime `MoleculeDefinition` instances created by `DiscoveredMolecule.Create`; they are not saved as assets and do not participate in reactions. A free structure that matches a curated recipe (same atoms, connectivity and hydrogen counts) is converted to that curated asset instead, so recipes stay the single source for reactions. Free structures own their inventory tokens under `FreeBuildView.Owner`; conversion transfers every token one-to-one. See FREE_BUILD.md.

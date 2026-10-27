@@ -14,7 +14,7 @@ using UnityEngine.XR.Interaction.Toolkit.UI;
 
 namespace MoleculeLab
 {
-    public enum LabMode { Build, Inspect, React }
+    public enum LabMode { Build, Inspect, React, Free }
     public sealed partial class LabController : MonoBehaviour
     {
         public ElementDefinition[] elements;
@@ -29,12 +29,48 @@ namespace MoleculeLab
         public LabMode Mode { get; private set; }
         public bool Resetting { get; private set; }
         public Vector3 BuildPosition => bench.position + new Vector3(-.12f,.46f,-.15f);
+        /// <summary>Where dropped molecules are returned: above the left of the bench, clear of the build spot.</summary>
+        public Vector3 BenchDropPosition => bench.position + new Vector3(-.6f,.3f,.15f);
+        /// <summary>Free build starts here: just above the bench (the recipe build spot is higher).</summary>
+        public Vector3 FreeBuildPosition => bench.position + new Vector3(-.12f,.22f,-.15f);
+        /// <summary>Height of the bench's working surface.</summary>
+        public float BenchTop => bench.position.y + .04f;
+        /// <summary>
+        /// The academic room was authored with most colliders switched off. Turn them on for solid furniture,
+        /// so held atoms and molecules (velocity-tracked) stop at walls, cabinets and shelves instead of passing through.
+        /// Thin details and the menu panel stay non-solid.
+        /// </summary>
+        void MakeEnvironmentSolid()
+        {
+            string[] decorative={"socket marker","Floor joint","Ventilation grille","label","Label","Sealed cap"};
+            foreach(var collider in Environment.GetComponentsInChildren<Collider>(true))
+            {
+                if(collider.enabled || collider.isTrigger) continue;
+                if(Environment.panelMount!=null && collider.transform.IsChildOf(Environment.panelMount)) continue;
+                if(decorative.Any(d=>collider.name.Contains(d))) continue;
+                var renderer=collider.GetComponent<Renderer>(); if(renderer==null) continue;
+                var size=renderer.bounds.size; if(Mathf.Min(size.x,Mathf.Min(size.y,size.z))<.004f) continue;
+                collider.enabled=true;
+            }
+            // Imported furniture meshes (desk chair, computer, books, plant) have no colliders at all: give them boxes.
+            foreach(var renderer in Environment.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if(renderer.GetComponent<Collider>()!=null || renderer.GetComponent<TMPro.TMP_Text>()!=null) continue;
+                var imported=false;
+                for(var t=renderer.transform;t!=null && t!=Environment.transform;t=t.parent) if(t.name.StartsWith("Fixed Kenney")) { imported=true; break; }
+                if(imported) renderer.gameObject.AddComponent<BoxCollider>();
+            }
+        }
         public LabEnvironment Environment { get; private set; }
         public AtomInventory Inventory { get; private set; }
         [Range(.08f,.3f)] public float previewDistance=.18f;
         [Range(.02f,.12f)] public float snapDistance=.05f;
         [Range(5,45)] public float snapAngle=15;
         [Min(0)] public float seedTransferDuration=.33f;
+        [Tooltip("Baskets refill instantly, so atoms never run out. Toggle in Settings.")]
+        public bool unlimitedAtoms=true;
+        ElementRack rack;
+        string[] socketLayout;
         public bool ReducedEffects { get; private set; }
         bool muted, hints=true;
         BondPreview preview;
@@ -111,6 +147,16 @@ namespace MoleculeLab
             Environment=FindAnyObjectByType<LabEnvironment>();
             if(Environment==null) throw new InvalidOperationException("Install the academic lab environment using Molecule Lab > Install academic environment.");
             bench=Environment.bench; tray=Environment.tray; height=Environment.workstation.position.y;
+            MakeEnvironmentSolid();
+            // Extra elements (N, S, P, F, Cl, Br) get their own shelf; scene-assigned element assets win.
+            var extra=ElementCatalog.Extra.Where(spec=>elements.All(e=>e==null || e.symbol!=spec.Symbol)).Select(ElementCatalog.Create).ToArray();
+            ownedResources.AddRange(extra); elements=elements.Concat(extra).ToArray();
+            var rackElements=ElementCatalog.Extra.Select(spec=>elements.First(e=>e!=null && e.symbol==spec.Symbol)).ToArray();
+            rack=ElementRack.Create(Environment.workstation,rackElements);
+            Environment.extraSockets=rack.Sockets; var firstExtra=Environment.sockets.Length;
+            Environment.extraCounts=inventory=>rack.UpdateCounts(inventory,firstExtra);
+            socketLayout=Enumerable.Range(0,Environment.sockets.Length).Select(i=>i<8?"C":i<16?"O":"H").Concat(rack.SocketSymbols).ToArray();
+            BuildGallery();
             preview=new GameObject("Bond placement feedback").AddComponent<BondPreview>(); preview.Initialize(this);
             dynamicRoot = new GameObject("Session objects").transform; dynamicRoot.SetParent(transform);
             twistHandle = new GameObject("Twist handle").AddComponent<InspectionHandle>(); twistHandle.Initialize(this,false);
@@ -132,11 +178,17 @@ namespace MoleculeLab
         public void SetMode(LabMode mode)
         {
             if(reacting) { Notify("Wait for the reaction to finish, or reset the bench."); return; }
-            CancelInteractions(); Mode=mode;
-            modeText.text=mode.ToString().ToUpperInvariant()+" MODE"; settingsPage=false; RebuildMenu();
+            if(checkingStructure) { Notify("Wait for the PubChem check to finish."); return; }
+            CancelInteractions();
+            // Leaving free build returns an unfinished structure, like switching an unfinished recipe.
+            if(mode!=LabMode.Free && freeView!=null) ClearFreeStructure(false);
+            if(mode==LabMode.Free && Mode!=LabMode.Free) PrepareFreeBench();
+            Mode=mode;
+            modeText.text=(mode==LabMode.Free?"FREE BUILD":mode.ToString().ToUpperInvariant())+" MODE"; settingsPage=false; RebuildMenu();
             if(Selected!=null) { Selected.ShowGeometry(mode==LabMode.Inspect); Selected.Bend(0); }
             if(mode==LabMode.Inspect && Selected!=null && Selected.State.Complete) Achieve("inspect");
-            Notify(mode==LabMode.Build?"Choose a molecule. Direction guides show valid bonding sites.":mode==LabMode.Inspect?"Grab a molecule to inspect. Ethane supports twisting and the energy wand.":"Choose a reaction, build its inputs, dock them, select conditions, then activate.");
+            Notify(mode==LabMode.Build?"Choose a molecule. Direction guides show valid bonding sites.":mode==LabMode.Inspect?"Grab a molecule to inspect. Ethane supports twisting and the energy wand.":
+                mode==LabMode.Free?"Free build: drop any basket atom on the teal ring and keep bonding. Finished molecules are checked in PubChem automatically.":"Choose a reaction, build its inputs, dock them, select conditions, then activate.");
         }
         public void Select(MoleculeView view)
         {
@@ -174,18 +226,34 @@ namespace MoleculeLab
         }
         void SpawnShelfAtom(int id)
         {
-            var element=elements.First(e=>e.symbol==Inventory.Tokens[id].Symbol);
+            var token=Inventory.Tokens[id]; if(token.Owner!=AtomInventory.Shelf) return; // retired atoms leave play
+            var element=elements.First(e=>e!=null && e.symbol==token.Symbol);
             var go=LabVisuals.Shape(element.symbol+" atom "+id,PrimitiveType.Sphere,dynamicRoot,Vector3.zero,Vector3.one*element.radius*2,element.color);
-            go.transform.position=Environment.SocketPosition(id); var atom=go.AddComponent<LooseAtom>(); atom.Initialize(this,element,id); loose.Add(atom);
+            go.transform.position=Environment.SocketPosition(token.Socket); var atom=go.AddComponent<LooseAtom>(); atom.Initialize(this,element,id); loose.Add(atom);
         }
         public void RefreshStock() { if(Inventory!=null) Environment.UpdateCounts(Inventory); }
         public void AtomReleased(LooseAtom atom)
         {
             ClearPreview(atom);
-            if(Vector3.Distance(atom.transform.position,Environment.SocketPosition(atom.TokenId))<.18f) atom.ReturnHome();
+            if(Vector3.Distance(atom.transform.position,Environment.SocketPosition(Inventory.Tokens[atom.TokenId].Socket))<.18f) atom.ReturnHome();
         }
-        public void ClearPreview(LooseAtom atom=null) { if(preview!=null) preview.Clear(atom); }
-        public void PreviewAtom(LooseAtom atom) { if(preview!=null) preview.Show(atom); }
+        /// <summary>An atom handed back to a basket that has already been refilled leaves play.</summary>
+        public void RetireLooseAtom(LooseAtom atom)
+        {
+            if(atom==null) return;
+            ClearPreview(atom); loose.Remove(atom); atom.gameObject.SetActive(false); Destroy(atom.gameObject); RefreshStock();
+        }
+        public void SetUnlimitedAtoms(bool unlimited)
+        {
+            unlimitedAtoms=unlimited; if(Inventory!=null) Inventory.Unlimited=unlimited; RefreshStock();
+            Notify(unlimited?"Unlimited atoms: baskets refill as soon as you take an atom.":"Finite atoms: every basket holds a fixed stock, as in the lesson.");
+        }
+        public void ClearPreview(LooseAtom atom=null) { if(preview!=null) preview.Clear(atom); if(freeView!=null) freeView.ClearPreview(atom); }
+        public void PreviewAtom(LooseAtom atom)
+        {
+            if(Mode==LabMode.Free) { if(freeView!=null) freeView.ShowPreview(atom); return; }
+            if(preview!=null) preview.Show(atom);
+        }
         public bool FindPlacement(LooseAtom atom,MoleculeView preferred,int preferredSite,out MoleculeView view,out int site,out PlacementResult result)
         {
             view=null; site=-1; result=default;
@@ -211,6 +279,7 @@ namespace MoleculeLab
         }
         public bool TryAttach(LooseAtom atom)
         {
+            if(Mode==LabMode.Free) return TryAttachFree(atom);
             if(atom==null || !loose.Contains(atom) || atom.Grab.isSelected) return false;
             var preferred=preview!=null && preview.Atom==atom?preview.Target:null; var preferredSite=preview!=null?preview.Site:-1;
             if(!FindPlacement(atom,preferred,preferredSite,out var candidate,out var site,out var result) || !result.Ready)
@@ -223,9 +292,10 @@ namespace MoleculeLab
             if(!candidate.State.Complete) Notify("Bond formed. Follow the next guide.",true);
             return true;
         }
-        public void ReturnAtoms() { if(reacting) return; CancelInteractions(); foreach(var atom in loose) atom.ReturnHome(); Notify("Loose atoms returned to their own sockets."); }
+        public void ReturnAtoms() { if(reacting) return; CancelInteractions(); foreach(var atom in loose.ToArray()) atom.ReturnHome(); Notify("Loose atoms returned to their own sockets."); }
         public void RecycleSelected()
         {
+            if(!reacting && Selected==null && Mode==LabMode.Free && freeView!=null) { ClearFreeStructure(true); return; }
             if(reacting || Selected==null) { Notify("Select a molecule to recycle."); return; }
             CancelInteractions(); Recycle(Selected); UpdateTray(); Notify("Atoms returned to the shelf.");
         }
@@ -257,7 +327,8 @@ namespace MoleculeLab
         }
         public void MoleculeCompleted(MoleculeView view)
         {
-            Select(view); Notify(view.Definition.displayName+" complete. Grab it with one or two hands."); audioSource.PlayOneShot(completeTone); Achieve("build"); Completed?.Invoke(view);
+            var isNew=RecordInGallery(view.Definition);
+            Select(view); Notify(view.Definition.displayName+" complete. Grab it with one or two hands."+GalleryNote(isNew)); audioSource.PlayOneShot(completeTone); Achieve("build"); Completed?.Invoke(view);
         }
         public void MoleculeReleased(MoleculeView view)
         {
@@ -305,6 +376,7 @@ namespace MoleculeLab
         void UpdateTray()
         {
             if(trayText==null) return;
+            if(Mode==LabMode.Free && !settingsPage) { trayText.text=FreeStatusText(); return; }
             if(ActiveReaction==null) { trayText.text="REACT: choose a reaction to see its input checklist."; return; }
             var docked=views.Where(v=>v.Docked && !v.Grab.isSelected).ToArray();
             trayText.text=ActiveReaction.equation+"\n"+string.Join("   ",ActiveReaction.inputs.Select(p=>$"{docked.Count(v=>v.Definition==p.molecule)}/{p.count} {p.molecule.formula}"))+"\nCondition: "+ConditionName(SelectedCondition);
@@ -372,6 +444,7 @@ namespace MoleculeLab
             if(reacting || views.Any(v=>v.PlacementLocked)) { Notify("Wait for the animation to finish before moving the workstation."); return; }
             CancelInteractions(); var next=Mathf.Clamp(height+change,.6f,1.05f); var delta=Vector3.up*(next-height); height=next;
             Environment.workstation.position+=delta; foreach(var view in views) view.transform.position+=delta; foreach(var atom in loose) if(atom!=null) atom.transform.position+=delta;
+            if(freeView!=null) freeView.transform.position+=delta;
             energyTool.ReturnHome();
         }
         public void ReturnMolecules()
@@ -380,7 +453,7 @@ namespace MoleculeLab
             for(var i=0;i<views.Count;i++)
             {
                 if(!views[i].State.Complete || views[i].PlacementLocked) continue;
-                views[i].Docked=false; views[i].transform.localScale=Vector3.one*.65f;
+                views[i].Docked=false; views[i].StopMotion(); views[i].transform.localScale=Vector3.one*.65f;
                 views[i].transform.position=bench.position+new Vector3(-.4f+(i%4)*.28f,.27f+(i/4)*.24f,.18f);
             }
             UpdateTray(); Notify("Molecules returned to the bench.");
@@ -388,6 +461,7 @@ namespace MoleculeLab
         void CancelInteractions()
         {
             ClearPreview();
+            if(freeView!=null) freeView.CancelGrabs();
             foreach(var view in views) if(view!=null) view.CancelSelection();
             foreach(var atom in loose) if(atom!=null && atom.Grab!=null && atom.Grab.interactionManager!=null)
                 foreach(var interactor in atom.Grab.interactorsSelecting.ToArray()) atom.Grab.interactionManager.SelectCancel(interactor,atom.Grab);
@@ -396,15 +470,19 @@ namespace MoleculeLab
         public void ResetLab()
         {
             Resetting=true; StopAllCoroutines(); CancelInteractions(); reacting=false;
+            exhibitInfoLoading.Clear(); if(hologram!=null) hologram.Hide();
+            checkingStructure=false; lookupSession++; freeView=null; // destroyed with the session objects below
             foreach(Transform child in dynamicRoot) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
             views.Clear(); loose.Clear(); Selected=null; achievements.Clear(); lessonStep=0; lesson.text=instructions[0];
-            Inventory=new AtomInventory(); Resetting=false; for(var id=0;id<Inventory.Tokens.Count;id++) SpawnShelfAtom(id); RefreshStock();
+            Inventory=new AtomInventory(socketLayout,unlimitedAtoms); Inventory.Refilled+=SpawnShelfAtom;
+            Resetting=false; for(var id=0;id<Inventory.Tokens.Count;id++) SpawnShelfAtom(id); RefreshStock();
             ActiveReaction=waterReaction; SelectedCondition=ReactionCondition.None;
-            energyTool.ReturnHome(); EnergyProgress(0); UpdateTray(); Mode=LabMode.Build; settingsPage=false; moleculePage=0; modeText.text="BUILD MODE"; RebuildMenu(); Notify("Choose a recipe. All 48 atoms are available on the shelf.");
+            energyTool.ReturnHome(); EnergyProgress(0); UpdateTray(); Mode=LabMode.Build; settingsPage=false; moleculePage=0; modeText.text="BUILD MODE"; RebuildMenu(); Notify(unlimitedAtoms?"Choose a recipe, or open FREE BUILD. Baskets refill automatically.":"Choose a recipe. Every atom is back on the shelves.");
         }
         void Update()
         {
             if(bench==null) return;
+            UpdateFreeDropZone();
             if(Selected!=null && Selected.Grab.isSelected && Selected.Grab.interactorsSelecting.Count>=2 && Mathf.Abs(Selected.transform.localScale.x-1)>.1f) Achieve("scale");
         }
         void OnApplicationPause(bool paused) { if(paused) CancelInteractions(); }

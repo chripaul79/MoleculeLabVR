@@ -13,8 +13,12 @@ namespace MoleculeLab
         public MoleculeDefinition Definition => State.Definition;
         public string FragmentPair;
         [System.NonSerialized] public MoleculeState ParentState;
-        public bool Docked;
+        /// <summary>Docked molecules sit still in the reaction tray; everything else complete falls under gravity.</summary>
+        public bool Docked { get => docked; set { docked=value; ApplyPhysics(); } }
+        bool docked;
         public bool PlacementLocked;
+        public Rigidbody Body { get; private set; }
+        float floorTime;
         public string InventoryOwner { get; private set; } = System.Guid.NewGuid().ToString();
         public int[] TokenIds { get; private set; }
         Vector3[] snapFrom;
@@ -41,10 +45,12 @@ namespace MoleculeLab
             bondShapes = Definition.bonds.Select(b => Enumerable.Range(0,Definition.IsAromaticBond(b)?1:b.order).Select(_ =>
                 LabVisuals.Shape("Bond", PrimitiveType.Cylinder, transform, Vector3.zero, Vector3.one, new Color(.55f,.7f,.78f), false).transform).ToArray()).ToArray();
             label = LabVisuals.Label(transform, "", new Vector3(0,Definition.atoms.Min(a=>a.position.y-a.element.radius)-.055f,0), .024f);
-            var body = gameObject.AddComponent<Rigidbody>(); body.useGravity = false; body.isKinematic = true;
+            var body = gameObject.AddComponent<Rigidbody>(); body.useGravity = false; body.isKinematic = true; Body = body;
+            body.mass = .3f; body.linearDamping = .6f; body.angularDamping = 2.5f;
+            body.interpolation = RigidbodyInterpolation.Interpolate; body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
             Grab = gameObject.AddComponent<XRGrabInteractable>();
             Grab.selectMode = InteractableSelectMode.Multiple; Grab.throwOnDetach = false;
-            Grab.movementType = XRBaseInteractable.MovementType.Instantaneous; Grab.useDynamicAttach = true;
+            Grab.movementType = XRBaseInteractable.MovementType.VelocityTracking; Grab.useDynamicAttach = true;
             Grab.addDefaultGrabTransformers = false;
             Grab.AddSingleGrabTransformer(gameObject.AddComponent<XRGeneralGrabTransformer>());
             Grab.AddMultipleGrabTransformer(gameObject.AddComponent<MoleculeScaleTransformer>());
@@ -75,6 +81,7 @@ namespace MoleculeLab
                 atomShapes[i].localScale = Vector3.one * element.radius * (occupied ? 2f : 1f);
             }
             Grab.enabled = State.Complete;
+            ApplyPhysics();
             if(aromaticCircle!=null) aromaticCircle.enabled=Definition.aromaticRing.All(State.IsOccupied);
             label.text = Definition.displayName + "  " + Definition.formula;
             UpdateGeometry();
@@ -122,8 +129,35 @@ namespace MoleculeLab
         void Update()
         {
             if(snapTime!=null && snapTime.Any(t=>t>0)) { for(var i=0;i<snapTime.Length;i++) snapTime[i]=Mathf.Max(0,snapTime[i]-Time.deltaTime); UpdateGeometry(); }
-            if (Grab != null && !Grab.isSelected && !Docked && (transform.position.y < .3f || transform.position.magnitude > 6))
-                transform.position = lab.BuildPosition;
+            if (Grab == null || Grab.isSelected) { floorTime = 0; return; }
+            ApplyPhysics();
+            var position = transform.position;
+            if (Docked) return;
+            if (Body.isKinematic) { if (position.y < .3f || position.magnitude > 6) transform.position = lab.BuildPosition; return; }
+            // Dropped molecules: anything that leaves the room, or lies on the floor for a few seconds, returns to the bench.
+            if (position.y < -1 || position.magnitude > 15) ReturnToBench();
+            else if (position.y < .3f) { floorTime += Time.deltaTime; if (floorTime > 3) ReturnToBench(); }
+            else floorTime = 0;
+        }
+        /// <summary>Complete, undocked, unheld molecules are dynamic rigidbodies; while held, XRI manages the body itself.</summary>
+        public void ApplyPhysics()
+        {
+            if (Body == null || State == null || (Grab != null && Grab.isSelected)) return;
+            var dynamic = State.Complete && !docked && !PlacementLocked && !State.Consumed;
+            if (Body.isKinematic != dynamic) return;
+            if (!dynamic) StopMotion();
+            Body.isKinematic = !dynamic; Body.useGravity = dynamic;
+            if (dynamic) Body.WakeUp();
+        }
+        public void StopMotion()
+        {
+            if (Body == null || Body.isKinematic) return;
+            Body.linearVelocity = Vector3.zero; Body.angularVelocity = Vector3.zero;
+        }
+        void ReturnToBench()
+        {
+            StopMotion(); transform.position = lab.BenchDropPosition; transform.rotation = Quaternion.identity; floorTime = 0;
+            lab.Notify(Definition.displayName + " fell and was returned to the bench.");
         }
         public void CancelSelection()
         {

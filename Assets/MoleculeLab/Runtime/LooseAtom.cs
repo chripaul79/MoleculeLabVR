@@ -19,12 +19,17 @@ namespace MoleculeLab
         {
             lab=owner; Element=element; TokenId=tokenId;
             var body=gameObject.AddComponent<Rigidbody>(); body.mass=.05f; body.useGravity=false; body.isKinematic=true;
+            body.interpolation=RigidbodyInterpolation.Interpolate; body.collisionDetectionMode=CollisionDetectionMode.ContinuousSpeculative;
             Grab=gameObject.AddComponent<XRGrabInteractable>(); Grab.throwOnDetach=false;
-            Grab.movementType=XRBaseInteractable.MovementType.Instantaneous;
+            // Velocity tracking: a held atom is pushed by physics towards the hand, so it stops at the bench, shelves and walls.
+            Grab.movementType=XRBaseInteractable.MovementType.VelocityTracking;
             Grab.useDynamicAttach=true; Grab.matchAttachPosition=true; Grab.matchAttachRotation=true;
             Grab.smoothPosition=true; Grab.smoothPositionAmount=20; Grab.tightenPosition=.8f;
             // Hydrogen's 8 cm target fits inside the closest 8.7 cm shelf socket spacing.
             GetComponent<SphereCollider>().radius=element.symbol=="H"?.04f/(element.radius*2):.5f;
+            // Loose atoms pass through each other, so a crowded basket never jams a grab or a refill.
+            var own=GetComponent<Collider>();
+            foreach(var other in Active) if(other!=this && other!=null) { var collider=other.GetComponent<Collider>(); if(collider!=null) Physics.IgnoreCollision(own,collider); }
             Grab.firstSelectEntered.AddListener(_=>TakeFromShelf());
             Grab.lastSelectExited.AddListener(args=> { if(args.isCanceled || !HandMenuRay.IsSafeRelease(args.interactorObject)) lab.ClearPreview(this); else if(!lab.Resetting) { if(!lab.TryAttach(this)) lab.AtomReleased(this); } });
             outline=new GameObject("Hover ring"); outline.transform.SetParent(transform,false);
@@ -36,7 +41,7 @@ namespace MoleculeLab
             Grab.selectExited.AddListener(_=> { line.startColor=line.endColor=new Color(.15f,.85f,.7f); outline.SetActive(Grab.isHovered); });
             Grab.firstHoverEntered.AddListener(_=>outline.SetActive(true)); Grab.lastHoverExited.AddListener(_=>outline.SetActive(Grab.isSelected));
             var label=LabVisuals.Label(transform,element.symbol,new Vector3(0,.04f,-.51f),.017f/transform.localScale.x);
-            symbolLabel=label; label.color=element.symbol=="H"?new Color(.06f,.12f,.14f):Color.white;
+            symbolLabel=label; label.color=ElementCatalog.IsLight(element.color)?new Color(.06f,.12f,.14f):Color.white;
             label.rectTransform.sizeDelta=new Vector2(.9f,.6f);
         }
         public bool TakeFromShelf()
@@ -49,7 +54,9 @@ namespace MoleculeLab
         {
             if(Grab.isSelected) return;
             if(!OnShelf && !lab.Inventory.Transfer(TokenId,Owner,AtomInventory.Shelf)) return;
-            OnShelf=true; transform.position=lab.Environment.SocketPosition(TokenId); transform.rotation=Quaternion.identity; lab.RefreshStock();
+            // Unlimited baskets: the socket already holds a fresh atom, so this one leaves play.
+            if(lab.Inventory.IsRetired(TokenId)) { lab.RetireLooseAtom(this); return; }
+            OnShelf=true; transform.position=lab.Environment.SocketPosition(lab.Inventory.Tokens[TokenId].Socket); transform.rotation=Quaternion.identity; lab.RefreshStock();
         }
         public void FaceSymbol(Camera camera)
         { if(camera!=null && symbolLabel!=null) symbolLabel.transform.position=transform.position+(camera.transform.position-transform.position).normalized*(Element.radius+.012f); }

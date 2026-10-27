@@ -43,14 +43,15 @@ namespace MoleculeLab
             var panel=Rect("Panel",menuRoot,Vector2.zero,menuRoot.sizeDelta).gameObject.AddComponent<Image>(); panel.color=new Color(.025f,.055f,.085f); panel.raycastTarget=true;
             Text(menuRoot,"MOLECULE LAB",new Vector2(-470,555),new Vector2(800,80),48,new Color(.25f,.95f,.85f));
             modeText=Text(menuRoot,"BUILD MODE",new Vector2(480,555),new Vector2(650,60),28,Color.white);
-            string[] names={"BUILD","INSPECT","REACT","SETTINGS"};
-            for(var i=0;i<4;i++) { var tab=i; Button(menuRoot,names[i],new Vector2(-660+i*440,455),new Vector2(400,80),()=> { if(tab==3) { settingsPage=true; RebuildMenu(); } else SetMode((LabMode)tab); }); }
+            string[] names={"BUILD","FREE BUILD","INSPECT","REACT","SETTINGS"};
+            LabMode[] tabModes={LabMode.Build,LabMode.Free,LabMode.Inspect,LabMode.React,LabMode.Build};
+            for(var i=0;i<names.Length;i++) { var tab=i; Button(menuRoot,names[i],new Vector2(-704+i*352,455),new Vector2(330,80),()=> { if(tab==names.Length-1) { settingsPage=true; RebuildMenu(); } else SetMode(tabModes[tab]); }); }
             status=Text(menuRoot,"",new Vector2(0,-320),new Vector2(1670,130),27,Color.white);
             Button(menuRoot,"Return atoms",new Vector2(-660,-435),new Vector2(400,80),ReturnAtoms);
             Button(menuRoot,"Return molecules",new Vector2(-220,-435),new Vector2(400,80),ReturnMolecules);
             Button(menuRoot,"Recycle selected",new Vector2(220,-435),new Vector2(400,80),RecycleSelected);
             Button(menuRoot,"Reset bench",new Vector2(660,-435),new Vector2(400,80),ResetLab);
-            Text(menuRoot,"ATOMS: reach or point + pinch. MENU: point, pinch, release to click.\nAuthored teaching models: geometry, energy and reaction animations are simplified.",new Vector2(0,-550),new Vector2(1690,95),24,new Color(.7f,.8f,.85f));
+            Text(menuRoot,"ATOMS: reach or point + pinch. MENU: point, pinch, release to click.\nTeaching models: geometry, energy and reactions are simplified. Free build identifies structures via PubChem.",new Vector2(0,-550),new Vector2(1690,95),24,new Color(.7f,.8f,.85f));
             RebuildMenu();
         }
         void RebuildMenu()
@@ -64,8 +65,9 @@ namespace MoleculeLab
             energyText=Text(page,"",new Vector2(430,-160),new Vector2(760,95),24,new Color(1,.8f,.4f));
             if(settingsPage)
             {
-                var labels=new[]{"Bench lower","Bench higher","Bench nearer","Bench farther","Sound on/off","Effects full/low","Hints on/off"};
-                Action[] actions={()=>AdjustHeight(-.05f),()=>AdjustHeight(.05f),()=>AdjustReach(-.05f),()=>AdjustReach(.05f),ToggleSound,()=>{ReducedEffects=!ReducedEffects;Notify(ReducedEffects?"Reduced effects enabled.":"Full effects enabled.");},()=>{hints=!hints;RebuildMenu();}};
+                var labels=new[]{"Bench lower","Bench higher","Bench nearer","Bench farther","Sound on/off","Effects full/low","Hints on/off",unlimitedAtoms?"Atoms: unlimited":"Atoms: finite","Clear gallery"};
+                Action[] actions={()=>AdjustHeight(-.05f),()=>AdjustHeight(.05f),()=>AdjustReach(-.05f),()=>AdjustReach(.05f),ToggleSound,()=>{ReducedEffects=!ReducedEffects;Notify(ReducedEffects?"Reduced effects enabled.":"Full effects enabled.");},()=>{hints=!hints;RebuildMenu();},
+                    ()=>{SetUnlimitedAtoms(!unlimitedAtoms);RebuildMenu();},ClearGallery};
                 for(var i=0;i<labels.Length;i++) Button(page,labels[i],new Vector2(-650+(i%2)*410,300-(i/2)*125),new Vector2(375,80),actions[i]);
                 lesson.text="Fit the workstation to your seated or standing reach. Both hands support direct pinch grabs. Point and pinch also grabs distant objects. Release before changing targets.";
             }
@@ -81,6 +83,7 @@ namespace MoleculeLab
                 Button(page,"Next >",new Vector2(-250,-200),new Vector2(350,80),()=>{moleculePage=Mathf.Min((molecules.Length-1)/4,moleculePage+1);RebuildMenu();});
                 energyText.text=$"Molecules: page {moleculePage+1}/{(molecules.Length+3)/4}\nChoose REACT for conditions and activation.";
             }
+            else if(Mode==LabMode.Free) BuildFreePage(page);
             else if(Mode==LabMode.Inspect)
             {
                 Text(page,Selected==null?"Grab a completed molecule to inspect it.":Selected.Definition.displayName+"  "+Selected.Definition.formula+"\n"+Selected.Definition.geometry+"\n"+Selected.Definition.electronicState,new Vector2(-450,160),new Vector2(780,360),27,Color.white);
@@ -103,6 +106,7 @@ namespace MoleculeLab
             if(reacting || views.Any(v=>v.PlacementLocked)) { Notify("Wait for the animation to finish."); return; }
             CancelInteractions(); var next=Mathf.Clamp(reachOffset+change,-.25f,.25f); var delta=Vector3.forward*(next-reachOffset); reachOffset=next;
             Environment.workstation.position+=delta; foreach(var view in views)view.transform.position+=delta; foreach(var atom in loose)if(atom!=null)atom.transform.position+=delta;
+            if(freeView!=null) freeView.transform.position+=delta;
             energyTool.ReturnHome(); Notify("Workstation reach adjusted.");
         }
     }

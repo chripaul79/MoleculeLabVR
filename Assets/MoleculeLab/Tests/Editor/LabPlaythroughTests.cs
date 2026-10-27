@@ -39,7 +39,8 @@ namespace MoleculeLab.Tests
         {
             var views=Object.FindObjectsByType<MoleculeView>(); var atoms=Object.FindObjectsByType<LooseAtom>();
             var ids=views.SelectMany(v=>v.TokenIds.Where(id=>id>=0)).Concat(atoms.Select(a=>a.TokenId)).ToArray();
-            Assert.That(ids.Length,Is.EqualTo(48)); Assert.That(ids.Distinct().Count(),Is.EqualTo(48));
+            var live=lab.Inventory.Live.Select(t=>t.Id).OrderBy(x=>x).ToArray();
+            Assert.That(ids.OrderBy(x=>x).ToArray(),Is.EqualTo(live),"Every atom in play appears exactly once.");
             foreach(var v in views) foreach(var id in v.TokenIds.Where(id=>id>=0)) Assert.That(lab.Inventory.Tokens[id].Owner,Is.EqualTo(v.InventoryOwner));
             foreach(var atom in atoms) Assert.That(lab.Inventory.Tokens[atom.TokenId].Owner,Is.EqualTo(atom.OnShelf?AtomInventory.Shelf:atom.Owner));
         }
@@ -63,6 +64,8 @@ namespace MoleculeLab.Tests
             EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
             yield return new EnterPlayMode(); yield return null;
             var lab=Object.FindAnyObjectByType<LabController>(); lab.seedTransferDuration=0;
+            // This lesson test covers the finite stock and must not write to the player's gallery file.
+            lab.UseGalleryFile(null); lab.SetUnlimitedAtoms(false); lab.ResetLab(); yield return null;
             foreach(var graphic in GameObject.Find("Lab control panel").GetComponentsInChildren<UnityEngine.UI.Graphic>())
                 Assert.That(graphic.gameObject.layer,Is.EqualTo(HandMenuRay.MenuLayer));
             foreach(var button in GameObject.Find("Lab control panel").GetComponentsInChildren<UnityEngine.UI.Button>())
@@ -117,8 +120,9 @@ namespace MoleculeLab.Tests
             yield return null;
             var lab=Object.FindAnyObjectByType<LabController>(); Assert.That(lab,Is.Not.Null);
             lab.seedTransferDuration=0;
+            lab.UseGalleryFile(null); lab.SetUnlimitedAtoms(false); lab.ResetLab(); yield return null;
             Assert.That(Camera.main,Is.Not.Null);
-            Assert.That(Object.FindObjectsByType<LooseAtom>().Length,Is.EqualTo(48));
+            Assert.That(Object.FindObjectsByType<LooseAtom>().Length,Is.EqualTo(lab.Inventory.SocketCount));
             Assert.That(Object.FindObjectsByType<LabController>().Length,Is.EqualTo(1));
             var water=Assemble(lab,"water"); lab.SetMode(LabMode.Inspect); Assert.That(lab.Selected,Is.EqualTo(water));
             VerifyTwoHandScaling(water);
@@ -149,7 +153,7 @@ namespace MoleculeLab.Tests
             lab.ResetLab(); yield return null;
             Assert.That(Object.FindObjectsByType<MoleculeView>().Length,Is.EqualTo(0));
             Assert.That(lab.Selected,Is.Null);
-            Assert.That(Object.FindObjectsByType<LooseAtom>().Length,Is.EqualTo(48));
+            Assert.That(Object.FindObjectsByType<LooseAtom>().Length,Is.EqualTo(lab.Inventory.SocketCount));
             // Reset must cancel the reaction coroutine and cannot spawn delayed products.
             a=Assemble(lab,"hydrogen"); b=Assemble(lab,"hydrogen"); c=Assemble(lab,"oxygen"); lab.SetMode(LabMode.React);
             foreach(var view in new[]{a,b,c}) { view.transform.position=GameObject.Find("Reaction tray").transform.position+Vector3.up*.2f; lab.MoleculeReleased(view); }
