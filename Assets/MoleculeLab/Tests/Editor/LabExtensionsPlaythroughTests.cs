@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 
 namespace MoleculeLab.Tests
 {
-    // Unlimited baskets, extra elements, gallery and gravity (27 October update).
+    // Endless beakers, extra elements, bins, reset button, teleport, gallery and gravity.
     public sealed class LabExtensionsPlaythroughTests
     {
         sealed class FakeLookup : IMoleculeLookup
@@ -41,21 +41,26 @@ namespace MoleculeLab.Tests
         }
 
         [UnityTest]
-        public IEnumerator UnlimitedBasketsElementsGalleryAndGravity()
+        public IEnumerator BeakersElementsBinsAndGravity()
         {
             EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
             yield return new EnterPlayMode(); yield return null;
             var lab=Object.FindAnyObjectByType<LabController>(); lab.seedTransferDuration=0; lab.freeRetrySeconds=600;
             var fake=new FakeLookup(); lab.MoleculeLookup=fake;
-            lab.UseGalleryFile(null); lab.SetUnlimitedAtoms(true); lab.ResetLab(); yield return null;
+            lab.UseGalleryFile(null); lab.ResetLab(); yield return null;
 
-            // Extra elements and their shelf.
-            foreach(var symbol in new[]{"N","S","P","F","Cl","Br"})
+            // Nine elements, each in its own endless beaker of small atoms; the prefab's baskets are gone.
+            foreach(var symbol in new[]{"H","C","O","N","S","P","F","Cl","Br"})
             {
                 Assert.That(lab.elements.Any(e=>e!=null && e.symbol==symbol),Is.True,symbol);
-                Assert.That(Object.FindObjectsByType<LooseAtom>().Count(a=>a.Element.symbol==symbol),Is.EqualTo(ElementRack.SocketsPerBasket),symbol);
+                Assert.That(Object.FindObjectsByType<LooseAtom>().Count(a=>a.Element.symbol==symbol),Is.EqualTo(BeakerShelf.AtomsPerBeaker),symbol);
+                Assert.That(GameObject.Find("Beaker "+symbol),Is.Not.Null,symbol);
             }
-            Assert.That(lab.Inventory.SocketCount,Is.EqualTo(48+6*ElementRack.SocketsPerBasket));
+            Assert.That(lab.Inventory.SocketCount,Is.EqualTo(9*BeakerShelf.AtomsPerBeaker)); Assert.That(lab.Inventory.Unlimited,Is.True);
+            var reachable=GameObject.Find("Reachable atom shelf"); Assert.That(reachable==null || !reachable.activeInHierarchy,Is.True);
+            var carbonInBeaker=Shelf("C"); var beaker=GameObject.Find("Beaker C").transform;
+            Assert.That(Vector2.Distance(new Vector2(carbonInBeaker.transform.position.x,carbonInBeaker.transform.position.z),new Vector2(beaker.position.x,beaker.position.z)),Is.LessThan(BeakerShelf.BeakerRadius),"Atoms sit inside the glass.");
+            Assert.That(carbonInBeaker.transform.lossyScale.x,Is.LessThan(lab.elements.First(e=>e.symbol=="C").radius*2*.7f),"Atoms are smaller than before.");
 
             // Solid room: walls and furniture block held atoms (velocity tracking needs enabled colliders).
             Assert.That(GameObject.Find("Rear wall").GetComponent<Collider>().enabled,Is.True);
@@ -65,10 +70,10 @@ namespace MoleculeLab.Tests
             Assert.That(GameObject.Find("Front wall"),Is.Null); Assert.That(GameObject.Find("Gallery table 1"),Is.Not.Null);
             Assert.That(lab.GalleryRoom.ExhibitCount,Is.Zero);
 
-            // Unlimited: building water twice never empties the oxygen basket; the gallery keeps one exhibit with a count.
+            // Finishing a molecule no longer adds it to the gallery; the player chooses with the bins.
             var water=Assemble(lab,"water");
-            Assert.That(lab.Inventory.Available("O"),Is.EqualTo(8)); Assert.That(lab.Inventory.Available("H"),Is.EqualTo(32));
-            Assert.That(lab.GalleryRoom.ExhibitCount,Is.EqualTo(1)); Assert.That(lab.Gallery.Entries[0].id,Is.EqualTo("water"));
+            Assert.That(lab.Inventory.Available("O"),Is.EqualTo(lab.Inventory.Capacity("O"))); Assert.That(lab.Inventory.Available("H"),Is.EqualTo(lab.Inventory.Capacity("H")));
+            Assert.That(lab.GalleryRoom.ExhibitCount,Is.Zero,"Nothing is kept until it is put in the gallery bin.");
             AssertInventory(lab);
 
             // Gravity: a finished molecule is a dynamic body and falls onto the bench.
@@ -76,21 +81,47 @@ namespace MoleculeLab.Tests
             var start=water.transform.position.y;
             for(var deadline=EditorApplication.timeSinceStartup+1.5;EditorApplication.timeSinceStartup<deadline;) yield return null;
             Assert.That(water.transform.position.y,Is.LessThan(start-.15f)); Assert.That(water.transform.position.y,Is.GreaterThan(lab.Environment.bench.position.y),"It lands on the bench, not through it.");
-            water.transform.position=lab.Environment.tray.position+Vector3.up*.2f; lab.MoleculeReleased(water);
-            Assert.That(water.Docked,Is.True); Assert.That(water.Body.isKinematic,Is.True,"Docked molecules stay put.");
 
-            Assemble(lab,"water"); yield return null;
+            // Gallery bin: dropped in, the molecule is recorded and leaves the bench.
+            water.transform.position=lab.GalleryBin.transform.position+Vector3.up*1f; water.Body.position=water.transform.position; water.Body.linearVelocity=Vector3.zero;
+            for(var deadline=EditorApplication.timeSinceStartup+3;water!=null && EditorApplication.timeSinceStartup<deadline;) yield return null;
+            Assert.That(water==null,Is.True,water==null?"":"The molecule should have fallen into the gallery bin; it is at "+water.transform.position+", bin at "+lab.GalleryBin.transform.position+", kinematic="+water.Body.isKinematic+", docked="+water.Docked);
+            Assert.That(lab.GalleryRoom.ExhibitCount,Is.EqualTo(1)); Assert.That(lab.Gallery.Entries[0].id,Is.EqualTo("water"));
+            Assert.That(lab.GalleryBin.LastFeedback,Does.Contain("Water")); AssertInventory(lab);
+
+            // A second water into the gallery only raises its count.
+            lab.MoleculeIntoBin(Assemble(lab,"water"),true); yield return null;
             Assert.That(lab.GalleryRoom.ExhibitCount,Is.EqualTo(1)); Assert.That(lab.Gallery.Entries[0].timesBuilt,Is.EqualTo(2));
 
-            // An atom put back on its basket leaves play, because the socket was already refilled.
-            var carbon=Shelf("C"); Assert.That(carbon.TakeFromShelf(),Is.True);
-            Assert.That(lab.Inventory.Available("C"),Is.EqualTo(8));
-            carbon.transform.position+=Vector3.up*.05f; lab.AtomReleased(carbon); yield return null;
-            Assert.That(carbon==null,Is.True,"Returned atom retired.");
-            Assert.That(Object.FindObjectsByType<LooseAtom>().Count(a=>a.Element.symbol=="C"),Is.EqualTo(8));
+            // Trash bin: discarded, never recorded.
+            var methane=Assemble(lab,"methane"); lab.MoleculeIntoBin(methane,false); yield return null;
+            Assert.That(methane==null,Is.True); Assert.That(lab.Gallery.Entries.Count,Is.EqualTo(1)); Assert.That(lab.TrashBin.LastFeedback,Does.Contain("Discarded"));
             AssertInventory(lab);
 
-            // Free build with a new element: ammonia goes to the gallery as a PubChem discovery.
+            // An unfinished molecule cannot be binned.
+            lab.StartMolecule(lab.molecules.First(m=>m.id=="water")); var unfinished=lab.Selected;
+            lab.MoleculeIntoBin(unfinished,true); yield return null;
+            Assert.That(unfinished!=null,Is.True); Assert.That(lab.Gallery.Entries.Count,Is.EqualTo(1));
+            lab.ResetLab(); yield return null;
+
+            // An atom put back in its beaker leaves play, because the beaker already refilled.
+            var carbon=Shelf("C"); Assert.That(carbon.TakeFromShelf(),Is.True);
+            Assert.That(lab.Inventory.Available("C"),Is.EqualTo(lab.Inventory.Capacity("C")));
+            carbon.transform.position+=Vector3.up*.05f; lab.AtomReleased(carbon); yield return null;
+            Assert.That(carbon==null,Is.True,"Returned atom retired.");
+            Assert.That(Object.FindObjectsByType<LooseAtom>().Count(a=>a.Element.symbol=="C"),Is.EqualTo(BeakerShelf.AtomsPerBeaker));
+            AssertInventory(lab);
+
+            // An atom taken out and left unused despawns after idleAtomSeconds.
+            lab.idleAtomSeconds=1; var idle=Shelf("O"); Assert.That(idle.TakeFromShelf(),Is.True);
+            idle.transform.position=lab.BenchDropPosition; idle.MarkReleased();
+            for(var deadline=EditorApplication.timeSinceStartup+.5;EditorApplication.timeSinceStartup<deadline;) yield return null;
+            Assert.That(idle!=null,Is.True,"Still there before the timeout.");
+            for(var deadline=EditorApplication.timeSinceStartup+2;idle!=null && EditorApplication.timeSinceStartup<deadline;) yield return null;
+            Assert.That(idle==null,Is.True,"Idle atom despawned."); AssertInventory(lab);
+            lab.idleAtomSeconds=10;
+
+            // Free build with a new element: ammonia is identified, then kept via the gallery bin.
             lab.SetMode(LabMode.Free);
             var nitrogen=Shelf("N"); nitrogen.transform.position=lab.FreeBuildPosition; Assert.That(lab.TryAttach(nitrogen),Is.True);
             Assert.That(lab.FreeView.StatusText,Does.Contain("3 open bonds"));
@@ -105,14 +136,74 @@ namespace MoleculeLab.Tests
             yield return null;
             Assert.That(lab.FreeView,Is.Null); Assert.That(lab.Selected.Definition.displayName,Is.EqualTo("Ammonia"));
             Assert.That(lab.Selected.GetComponentsInChildren<SphereCollider>().Min(c=>c.bounds.min.y),Is.GreaterThan(lab.BenchTop-.005f),"The structure was lifted clear of the bench.");
+            Assert.That(lab.Gallery.Entries.Count,Is.EqualTo(1),"Not kept until binned.");
+            lab.MoleculeIntoBin(lab.Selected,true); yield return null;
             Assert.That(lab.Gallery.Entries.Select(e=>e.id),Does.Contain("pubchem-222")); Assert.That(lab.GalleryRoom.ExhibitCount,Is.EqualTo(2));
-            Assert.That(lab.Inventory.Available("N"),Is.EqualTo(ElementRack.SocketsPerBasket));
+            Assert.That(lab.Inventory.Available("N"),Is.EqualTo(BeakerShelf.AtomsPerBeaker));
             AssertInventory(lab);
 
-            // Clearing the gallery needs two presses.
+            // The red reset button clears the bench and keeps the gallery.
+            Assemble(lab,"water"); lab.SetMode(LabMode.Free);
+            var presses=lab.ResetControl.Presses; lab.ResetControl.Fire();
+            lab.ResetControl.Fire(); Assert.That(lab.ResetControl.Presses,Is.EqualTo(presses+1),"One press per push: it re-arms only when released.");
+            yield return null;
+            Assert.That(lab.Mode,Is.EqualTo(LabMode.Build));
+            Assert.That(Object.FindObjectsByType<MoleculeView>().Length,Is.Zero); Assert.That(lab.Gallery.Entries.Count,Is.EqualTo(2),"The gallery survives a reset.");
+
+            // Clearing the gallery (settings) needs two presses.
             lab.ClearGallery(); Assert.That(lab.Gallery.Entries.Count,Is.EqualTo(2));
             lab.ClearGallery(); yield return null;
             Assert.That(lab.Gallery.Entries.Count,Is.Zero); Assert.That(lab.GalleryRoom.ExhibitCount,Is.Zero);
+            yield return new ExitPlayMode();
+        }
+
+        [UnityTest]
+        public IEnumerator ResetButtonAndTeleport()
+        {
+            EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
+            yield return new EnterPlayMode(); yield return null;
+            var lab=Object.FindAnyObjectByType<LabController>(); lab.UseGalleryFile(null);
+            var button=lab.ResetControl; Assert.That(button,Is.Not.Null);
+            // Only a fingertip pressing down onto the cap counts; hovering above or beside it does not.
+            Assert.That(button.PushDepth(button.CapTop+Vector3.up*.03f),Is.Zero);
+            Assert.That(button.PushDepth(button.CapTop+Vector3.right*.2f),Is.Zero);
+            Assert.That(button.PushDepth(button.CapTop+Vector3.down*.03f),Is.EqualTo(ResetButton.Travel).Within(1e-4f));
+            Assert.That(button.transform.position.y,Is.GreaterThan(lab.BenchTop-.01f),"The button sits on the bench.");
+            // Controller teleport onto the lab and gallery floors.
+            Assert.That(lab.TeleportReady,Is.True);
+            Assert.That(lab.TeleportAreas.Count,Is.GreaterThanOrEqualTo(2));
+            Assert.That(Object.FindAnyObjectByType<UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportationProvider>().isActiveAndEnabled,Is.True);
+            yield return new ExitPlayMode();
+        }
+
+        [UnityTest]
+        public IEnumerator BrightClassroomIsDressedAndStillPlayable()
+        {
+            EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
+            yield return new EnterPlayMode(); yield return null;
+            var lab=Object.FindAnyObjectByType<LabController>(); lab.UseGalleryFile(null);
+            var room=lab.Classroom; Assert.That(room,Is.Not.Null);
+            Assert.That(room.Windows,Is.EqualTo(2)); Assert.That(room.Whiteboard,Is.Not.Null);
+            Assert.That(GameObject.Find("Opaque daylight glazing"),Is.Null,"The old small window is replaced.");
+            // Visual dressing only: walls and floors keep their colliders, so physics and teleport still work.
+            Assert.That(GameObject.Find("Rear wall").GetComponent<Collider>().enabled,Is.True);
+            Assert.That(lab.TeleportReady,Is.True);
+            if(lab.classroomKit!=null && lab.classroomKit.labCounter!=null)
+            {
+                Assert.That(room.PlacedModels,Is.GreaterThan(10),"Furniture and glassware from the lab pack.");
+                Assert.That(GameObject.Find("Lab counter 1"),Is.Not.Null); Assert.That(GameObject.Find("Teacher desk"),Is.Not.Null);
+                Assert.That(GameObject.Find("Rear counter"),Is.Null,"The old counters are replaced.");
+                // Nothing placed in the play area around the bench.
+                foreach(var collider in room.GetComponentsInChildren<BoxCollider>())
+                {
+                    var b=collider.bounds;
+                    Assert.That(b.max.x<-1.6f || b.min.x>1.6f || b.min.z>1.35f || b.max.z<-1.6f,Is.True,collider.name+" intrudes on the play area: "+b);
+                }
+            }
+            if(room.Skipped.Count>0) Debug.Log("Classroom skipped: "+string.Join(", ",room.Skipped));
+            foreach(var renderer in room.GetComponentsInChildren<Renderer>())
+                foreach(var material in renderer.sharedMaterials)
+                    if(material!=null) Assert.That(material.shader.name,Does.Not.Contain("InternalError"),renderer.name+" would render pink.");
             yield return new ExitPlayMode();
         }
 
@@ -136,7 +227,7 @@ namespace MoleculeLab.Tests
             var info=new FakeInfo();
             lab.MoleculeLookup=new FakeLookup{Next=new MoleculeLookupResult{status=LookupStatus.Found,cid=962,title="Water",iupacName="oxidane",molecularFormula="H2O"}};
             lab.MoleculeInfoSource=info; lab.hologramLinger=.2f; lab.UseGalleryFile(null); lab.ResetLab(); yield return null;
-            Assemble(lab,"water"); yield return null;
+            lab.MoleculeIntoBin(Assemble(lab,"water"),true); yield return null;
             var exhibit=lab.GalleryRoom.Exhibits.First();
             Assert.That(lab.Hologram.Visible,Is.False);
 

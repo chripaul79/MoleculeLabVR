@@ -18,7 +18,7 @@ namespace MoleculeLab
         {
             if(fallback==null || effectiveCastOrigin==null) return null;
             var point=effectiveCastOrigin.position;
-            float Distance(LooseAtom a)=>Vector3.Distance(point,a.transform.position)-a.Element.radius;
+            float Distance(LooseAtom a)=>Vector3.Distance(point,a.transform.position)-a.transform.lossyScale.x*.5f; // visible surface
             bool Valid(LooseAtom a)=>a!=null && a.Element!=null && a.isActiveAndEnabled && a.Grab!=null && a.Grab.enabled && !a.Grab.isSelected && Distance(a)<=owner.acquisitionDistance;
             if(!Valid(current)) current=null;
             var best=current!=null?Distance(current):float.MaxValue;

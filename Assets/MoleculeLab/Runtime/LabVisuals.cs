@@ -5,6 +5,8 @@ namespace MoleculeLab
 {
     public static class LabVisuals
     {
+        /// <summary>Visual size of atoms relative to ElementDefinition.radius (smaller balls, same bond lengths).</summary>
+        public const float AtomScale = .6f;
         static readonly Dictionary<Color,Material> materials = new Dictionary<Color,Material>();
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetCache() { materials.Clear(); }

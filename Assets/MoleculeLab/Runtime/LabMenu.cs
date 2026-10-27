@@ -47,11 +47,9 @@ namespace MoleculeLab
             LabMode[] tabModes={LabMode.Build,LabMode.Free,LabMode.Inspect,LabMode.React,LabMode.Build};
             for(var i=0;i<names.Length;i++) { var tab=i; Button(menuRoot,names[i],new Vector2(-704+i*352,455),new Vector2(330,80),()=> { if(tab==names.Length-1) { settingsPage=true; RebuildMenu(); } else SetMode(tabModes[tab]); }); }
             status=Text(menuRoot,"",new Vector2(0,-320),new Vector2(1670,130),27,Color.white);
-            Button(menuRoot,"Return atoms",new Vector2(-660,-435),new Vector2(400,80),ReturnAtoms);
-            Button(menuRoot,"Return molecules",new Vector2(-220,-435),new Vector2(400,80),ReturnMolecules);
-            Button(menuRoot,"Recycle selected",new Vector2(220,-435),new Vector2(400,80),RecycleSelected);
-            Button(menuRoot,"Reset bench",new Vector2(660,-435),new Vector2(400,80),ResetLab);
-            Text(menuRoot,"ATOMS: reach or point + pinch. MENU: point, pinch, release to click.\nTeaching models: geometry, energy and reactions are simplified. Free build identifies structures via PubChem.",new Vector2(0,-550),new Vector2(1690,95),24,new Color(.7f,.8f,.85f));
+            // Physical controls replace the old bottom-row buttons: red button = reset, bins = keep or discard.
+            Text(menuRoot,"KEEP a molecule: drop it in the GALLERY bin.   DISCARD: drop it in the TRASH bin.   RESET: press the red button on the bench.",new Vector2(0,-440),new Vector2(1690,70),25,Color.white);
+            Text(menuRoot,"Grab: reach or point + pinch.  Menu: point, pinch, release.  Teleport: controller thumbstick.",new Vector2(0,-550),new Vector2(1690,70),23,new Color(.75f,.8f,.82f));
             RebuildMenu();
         }
         void RebuildMenu()
@@ -61,13 +59,12 @@ namespace MoleculeLab
             pageObject=Rect("Current menu page",menuRoot,Vector2.zero,new Vector2(1800,700)).gameObject;
             var page=pageObject.transform; activateButton=null;
             lesson=Text(page,hints?instructions[lessonStep]:"Hints hidden. Essential placement feedback stays enabled.",new Vector2(430,265),new Vector2(780,170),26,Color.white);
-            trayText=Text(page,"",new Vector2(430,60),new Vector2(780,160),26,new Color(.4f,1,.8f));
-            energyText=Text(page,"",new Vector2(430,-160),new Vector2(760,95),24,new Color(1,.8f,.4f));
+            trayText=Text(page,"",new Vector2(430,60),new Vector2(780,160),26,Color.white);
+            energyText=Text(page,"",new Vector2(430,-160),new Vector2(760,95),24,new Color(.8f,.85f,.88f));
             if(settingsPage)
             {
-                var labels=new[]{"Bench lower","Bench higher","Bench nearer","Bench farther","Sound on/off","Effects full/low","Hints on/off",unlimitedAtoms?"Atoms: unlimited":"Atoms: finite","Clear gallery"};
-                Action[] actions={()=>AdjustHeight(-.05f),()=>AdjustHeight(.05f),()=>AdjustReach(-.05f),()=>AdjustReach(.05f),ToggleSound,()=>{ReducedEffects=!ReducedEffects;Notify(ReducedEffects?"Reduced effects enabled.":"Full effects enabled.");},()=>{hints=!hints;RebuildMenu();},
-                    ()=>{SetUnlimitedAtoms(!unlimitedAtoms);RebuildMenu();},ClearGallery};
+                var labels=new[]{"Bench lower","Bench higher","Bench nearer","Bench farther","Sound on/off","Effects full/low","Hints on/off","Clear gallery"};
+                Action[] actions={()=>AdjustHeight(-.05f),()=>AdjustHeight(.05f),()=>AdjustReach(-.05f),()=>AdjustReach(.05f),ToggleSound,()=>{ReducedEffects=!ReducedEffects;Notify(ReducedEffects?"Reduced effects enabled.":"Full effects enabled.");},()=>{hints=!hints;RebuildMenu();},ClearGallery};
                 for(var i=0;i<labels.Length;i++) Button(page,labels[i],new Vector2(-650+(i%2)*410,300-(i/2)*125),new Vector2(375,80),actions[i]);
                 lesson.text="Fit the workstation to your seated or standing reach. Both hands support direct pinch grabs. Point and pinch also grabs distant objects. Release before changing targets.";
             }

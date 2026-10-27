@@ -56,7 +56,7 @@ namespace MoleculeLab.Tests
             EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
             yield return new EnterPlayMode(); yield return null;
             var lab=Object.FindAnyObjectByType<LabController>(); lab.seedTransferDuration=0; lab.freeRetrySeconds=600;
-            lab.UseGalleryFile(null); lab.SetUnlimitedAtoms(false); lab.ResetLab(); yield return null;
+            lab.UseGalleryFile(null); lab.ResetLab(); yield return null;
             var fake=new FakeLookup(); lab.MoleculeLookup=fake;
             lab.SetMode(LabMode.Free); Assert.That(lab.Mode,Is.EqualTo(LabMode.Free));
 
@@ -97,9 +97,8 @@ namespace MoleculeLab.Tests
             Drop(lab,"O"); Place(lab,"H",0); Place(lab,"H",0); view=lab.FreeView;
             for(var deadline=EditorApplication.timeSinceStartup+5;lab.IsCheckingStructure && EditorApplication.timeSinceStartup<deadline;) yield return null;
             Assert.That(lab.FreeView,Is.Not.Null); Assert.That(view.Locked,Is.False); Assert.That(view.StatusText,Does.Contain("not in PubChem"));
-            var hydrogens=lab.Inventory.Available("H");
             lab.FreeAtomPulled(view,2); yield return null;
-            Assert.That(lab.Inventory.Available("H"),Is.EqualTo(hydrogens+1)); Assert.That(view.StatusText,Does.Contain("Not complete: 1 open bond"));
+            Assert.That(lab.Inventory.Available("H"),Is.EqualTo(lab.Inventory.Capacity("H")),"The beaker stays full; the pulled atom leaves play."); Assert.That(view.StatusText,Does.Contain("Not complete: 1 open bond"));
             AssertInventory(lab);
 
             // Offline, but a catalogue match is still recognised.
@@ -140,13 +139,16 @@ namespace MoleculeLab.Tests
             view.BeginDrag(1); AtomShape(view,1).position+=new Vector3(.12f,.05f,0); yield return null;
             view.EndDrag(1,true); yield return null; yield return null;
             Assert.That(Vector3.Distance(Anchor(),before),Is.LessThan(.01f),"Releasing a dragged atom must not move the molecule.");
+            // Let the released atom glide back before grabbing it again (frame times vary in the editor).
+            for(var settle=EditorApplication.timeSinceStartup+.6;EditorApplication.timeSinceStartup<settle;) yield return null;
             Assert.That(view.Structure.Graph.Bonds[0].Order,Is.EqualTo(1));
 
             // Squeeze it into the first carbon along the bond: double bond, molecule still in place.
             var axis=(AtomShape(view,1).position-AtomShape(view,0).position).normalized;
             view.BeginDrag(1); AtomShape(view,1).position=AtomShape(view,0).position+axis*.1f; yield return null;
             Assert.That(view.EvaluateGesture(1,out var gesture,out var partner,out var ready,out var text),Is.True);
-            Assert.That(gesture,Is.EqualTo(FreeGesture.Bond)); Assert.That(partner,Is.EqualTo(0)); Assert.That(ready,Is.True,text);
+            Assert.That(gesture,Is.EqualTo(FreeGesture.Bond),$"d01={Vector3.Distance(AtomShape(view,1).position,AtomShape(view,0).position):0.000} text={text} structure01={Vector3.Distance(view.Structure.Position(0),view.Structure.Position(1)):0.000}");
+            Assert.That(partner,Is.EqualTo(0)); Assert.That(ready,Is.True,text);
             view.EndDrag(1,true); yield return null; yield return null;
             Assert.That(view.Structure.Graph.Bonds[0].Order,Is.EqualTo(2));
             Assert.That(Vector3.Distance(Anchor(),before),Is.LessThan(.01f));
@@ -170,7 +172,7 @@ namespace MoleculeLab.Tests
             EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
             yield return new EnterPlayMode(); yield return null;
             var lab=Object.FindAnyObjectByType<LabController>(); lab.seedTransferDuration=0; lab.freeRetrySeconds=600;
-            lab.UseGalleryFile(null); lab.SetUnlimitedAtoms(false); lab.ResetLab(); yield return null;
+            lab.UseGalleryFile(null); lab.ResetLab(); yield return null;
             var fake=new FakeLookup(); lab.MoleculeLookup=fake;
             lab.StartFreeStructure("C"); Assert.That(lab.Mode,Is.EqualTo(LabMode.Free));
             for(var i=0;i<3;i++) Place(lab,"C",i);
@@ -192,24 +194,40 @@ namespace MoleculeLab.Tests
             Assert.That(fake.Calls,Is.EqualTo(1)); Assert.That(view.StatusText,Does.Contain("retrying"));
             AssertInventory(lab);
 
-            // Pull the last hydrogen far away and let go: it returns to its basket.
-            var hydrogen=view.Structure.Count-1; var available=lab.Inventory.Available("H");
+            // Pull the last hydrogen far away and let go: it leaves the structure (the beaker is endless).
+            var hydrogen=view.Structure.Count-1;
             view.BeginDrag(hydrogen);
             AtomShape(view,hydrogen).position+=Vector3.up*.6f;
             Assert.That(view.EvaluateGesture(hydrogen,out gesture,out _,out ready,out _),Is.True);
             Assert.That(gesture,Is.EqualTo(FreeGesture.Remove)); Assert.That(ready,Is.True);
             view.EndDrag(hydrogen,true); yield return null;
-            Assert.That(lab.Inventory.Available("H"),Is.EqualTo(available+1)); Assert.That(view.StatusText,Does.Contain("Not complete"));
+            Assert.That(lab.Inventory.Available("H"),Is.EqualTo(lab.Inventory.Capacity("H"))); Assert.That(view.StatusText,Does.Contain("Not complete"));
             AssertInventory(lab);
 
             // A carbon holding other atoms cannot be pulled off; the structure is unchanged.
             var count=view.Structure.Count; lab.FreeAtomPulled(view,0); yield return null;
             Assert.That(view.Structure.Count,Is.EqualTo(count));
 
-            // Reset while PubChem is still answering: no late conversion, every atom home.
+            // Undo removes the newest atom; Fill hydrogens completes the structure again.
+            count=view.Structure.Count; lab.UndoFreeAtom(); yield return null;
+            Assert.That(view.Structure.Count,Is.EqualTo(count-1)); AssertInventory(lab);
+
+            // Switching tabs while PubChem is still answering cancels the check instead of blocking the menu.
             fake.Hang=true; lab.FillHydrogens();
             Assert.That(lab.IsCheckingStructure,Is.True);
-            lab.SetMode(LabMode.Build); Assert.That(lab.Mode,Is.EqualTo(LabMode.Free),"Mode changes wait for the check.");
+            lab.SetMode(LabMode.Build); Assert.That(lab.Mode,Is.EqualTo(LabMode.Build),"Tabs always switch."); Assert.That(lab.IsCheckingStructure,Is.False);
+            Assert.That(lab.FreeView,Is.Null); AssertInventory(lab);
+
+            // Clear while checking: no late conversion, the structure is gone.
+            lab.SetMode(LabMode.Free); Drop(lab,"O"); Place(lab,"H",0); Place(lab,"H",0);
+            Assert.That(lab.IsCheckingStructure,Is.True);
+            lab.ClearFreeStructure(true); fake.Hang=false; yield return null; yield return null;
+            Assert.That(lab.IsCheckingStructure,Is.False); Assert.That(lab.FreeView,Is.Null);
+            Assert.That(Object.FindObjectsByType<MoleculeView>().Length,Is.Zero); AssertInventory(lab);
+
+            // Reset while PubChem is still answering: no late conversion, every atom home.
+            fake.Hang=true; lab.SetMode(LabMode.Free); Drop(lab,"O"); Place(lab,"H",0); Place(lab,"H",0);
+            Assert.That(lab.IsCheckingStructure,Is.True);
             lab.ResetLab(); fake.Hang=false; yield return null; yield return null;
             Assert.That(lab.IsCheckingStructure,Is.False); Assert.That(lab.FreeView,Is.Null);
             Assert.That(Object.FindObjectsByType<MoleculeView>().Length,Is.Zero);
@@ -220,7 +238,7 @@ namespace MoleculeLab.Tests
             lab.SetMode(LabMode.Free); Drop(lab,"O");
             Assert.That(lab.FreeView.Structure.Count,Is.EqualTo(1)); AssertInventory(lab);
             lab.FreeAtomPulled(lab.FreeView,0); yield return null;
-            Assert.That(lab.FreeView,Is.Null); Assert.That(lab.Inventory.Available("O"),Is.EqualTo(8));
+            Assert.That(lab.FreeView,Is.Null); Assert.That(lab.Inventory.Available("O"),Is.EqualTo(lab.Inventory.Capacity("O")));
             AssertInventory(lab);
             yield return new ExitPlayMode();
         }

@@ -125,7 +125,7 @@ namespace MoleculeLab
             for(var i=0;i<entry.symbols.Length;i++)
             {
                 var element=elements.FirstOrDefault(e=>e!=null && e.symbol==entry.symbols[i]);
-                var radius=element!=null?element.radius:.05f;
+                var radius=(element!=null?element.radius:.05f)*LabVisuals.AtomScale;
                 LabVisuals.Shape(entry.symbols[i],PrimitiveType.Sphere,model,entry.positions[i]-centre,Vector3.one*radius*2,element!=null?element.color:Color.gray);
                 extent=Mathf.Max(extent,(entry.positions[i]-centre).magnitude+radius);
             }

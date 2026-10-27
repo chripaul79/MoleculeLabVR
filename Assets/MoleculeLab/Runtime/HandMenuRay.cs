@@ -35,7 +35,9 @@ namespace MoleculeLab
             if(!armed) return;
             if(!Pinched && strength>=press)
             {
-                Pinched=true; began=time; Target=near??far??ui; Menu=near==null && far==null && ui!=null; Down=Target!=null;
+                // A menu button under the ray wins over a far object (an atom or molecule floating in front of the panel);
+                // only something within direct reach of the hand beats the menu.
+                Pinched=true; began=time; Target=near??ui??far; Menu=near==null && ui!=null; Down=Target!=null;
             }
             else if(Pinched && Target==null && time-began<=grace && near!=null)
             { Target=near; Menu=false; Down=true; }

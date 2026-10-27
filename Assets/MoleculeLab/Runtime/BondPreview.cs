@@ -69,7 +69,7 @@ namespace MoleculeLab
                 var symbol=view.Definition.atoms[index].element.symbol;
                 if(symbol!="C" && symbol!="O") continue;
                 var anchor=view.SitePosition(index); var end=view.SitePosition(site); var direction=(end-anchor).normalized;
-                var radius=view.Definition.atoms[index].element.radius*view.transform.lossyScale.x;
+                var radius=view.Definition.atoms[index].element.radius*LabVisuals.AtomScale*view.transform.lossyScale.x;
                 var patch=anchor+direction*(radius+.004f);
                 var rotation=Quaternion.FromToRotation(Vector3.forward,direction);
                 var side=rotation*Vector3.right*.035f; var up=rotation*Vector3.up*.035f;

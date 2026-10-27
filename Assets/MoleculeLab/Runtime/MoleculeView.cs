@@ -40,7 +40,7 @@ namespace MoleculeLab
             {
                 var atom = Definition.atoms[i];
                 atomShapes[i] = LabVisuals.Shape(atom.element.symbol + " site " + i, PrimitiveType.Sphere, transform, atom.position,
-                    Vector3.one * atom.element.radius * 2, atom.element.color).transform;
+                    Vector3.one * atom.element.radius * 2 * LabVisuals.AtomScale, atom.element.color).transform;
             }
             bondShapes = Definition.bonds.Select(b => Enumerable.Range(0,Definition.IsAromaticBond(b)?1:b.order).Select(_ =>
                 LabVisuals.Shape("Bond", PrimitiveType.Cylinder, transform, Vector3.zero, Vector3.one, new Color(.55f,.7f,.78f), false).transform).ToArray()).ToArray();
@@ -78,7 +78,7 @@ namespace MoleculeLab
                 atomShapes[i].GetComponent<Renderer>().sharedMaterial = LabVisuals.Material(occupied ? element.color :
                     State.CanPlace(i,element,out _) ? new Color(.1f,.7f,.65f) : new Color(.16f,.22f,.27f));
                 atomShapes[i].GetComponent<Renderer>().enabled=occupied;
-                atomShapes[i].localScale = Vector3.one * element.radius * (occupied ? 2f : 1f);
+                atomShapes[i].localScale = Vector3.one * element.radius * LabVisuals.AtomScale * (occupied ? 2f : 1f);
             }
             Grab.enabled = State.Complete;
             ApplyPhysics();
@@ -157,6 +157,8 @@ namespace MoleculeLab
         void ReturnToBench()
         {
             StopMotion(); transform.position = lab.BenchDropPosition; transform.rotation = Quaternion.identity; floorTime = 0;
+            // An interpolated body would otherwise be pulled back to where physics last had it.
+            if (Body != null) { Body.position = transform.position; Body.rotation = transform.rotation; }
             lab.Notify(Definition.displayName + " fell and was returned to the bench.");
         }
         public void CancelSelection()

@@ -65,5 +65,19 @@ namespace MoleculeLab.Tests
             Assert.That(s.Position(c).magnitude,Is.LessThan(.0001f),"The atom that stayed put keeps its place.");
             Assert.That(Vector3.Distance(s.Position(c),s.Position(c2)),Is.EqualTo(FreeStructure.HeavyBond).Within(.005f),"The released atom springs back.");
         }
+        [Test] public void HologramExplainsMissingInformation()
+        {
+            var entry=new GalleryEntry{name="Mystery"};
+            Assert.That(MoleculeHologram.Compose(entry,new MoleculeInfo{status=LookupStatus.Error}),Does.Contain("No information available right now").And.Contain("Wi-Fi"));
+            Assert.That(MoleculeHologram.Compose(entry,null),Does.Contain("No information available right now"));
+            Assert.That(MoleculeHologram.Compose(entry,new MoleculeInfo{status=LookupStatus.NotFound}),Does.Contain("Not found in PubChem"));
+            var bare=MoleculeHologram.Compose(entry,new MoleculeInfo{status=LookupStatus.Found,cid=12345});
+            Assert.That(bare,Does.Contain("No description available")); Assert.That(bare,Does.Contain("CID 12345"));
+            var usesOnly=MoleculeHologram.Compose(entry,new MoleculeInfo{status=LookupStatus.Found,cid=1,uses=new[]{"Solvent"}});
+            Assert.That(usesOnly,Does.Contain("no written description of Mystery")); Assert.That(usesOnly,Does.Contain("- Solvent"));
+            var descriptionOnly=MoleculeHologram.Compose(entry,new MoleculeInfo{status=LookupStatus.Found,cid=1,description="A test compound."});
+            Assert.That(descriptionOnly,Does.Contain("A test compound.")); Assert.That(descriptionOnly,Does.Contain("No uses are recorded"));
+            Assert.That(descriptionOnly,Does.Not.Contain("<color"),"Plain white text, no coloured warnings.");
+        }
     }
 }

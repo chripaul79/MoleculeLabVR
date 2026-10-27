@@ -23,6 +23,17 @@ namespace MoleculeLab.Tests
             s.Step(.65f,3,null,null,button); Assert.That(s.Pinched,Is.True); Assert.That(s.Target,Is.SameAs(atom));
             s.Step(.6f,4,null,null,button); Assert.That(s.Up,Is.True); Assert.That(s.Pinched,Is.False);
         }
+        [Test] public void MenuUnderTheRayBeatsAFarObject()
+        {
+            // An atom or molecule floating in front of the panel used to swallow tab presses.
+            var s=new HandPinchState(); var far=new object(); var tab=new object(); var near=new object();
+            s.Step(0,0,null,null,null); s.Step(1,1,null,far,tab);
+            Assert.That(s.Target,Is.SameAs(tab)); Assert.That(s.Menu,Is.True);
+            s.Step(0,2,null,null,null); s.Step(1,3,null,far,null);
+            Assert.That(s.Target,Is.SameAs(far),"With no menu under the ray, distance grabs still work."); Assert.That(s.Menu,Is.False);
+            s.Step(0,4,null,null,null); s.Step(1,5,near,far,tab);
+            Assert.That(s.Target,Is.SameAs(near),"Something in the hand's reach wins."); Assert.That(s.Menu,Is.False);
+        }
         [TestCase(.14f,true)] [TestCase(.16f,false)]
         public void EarlyPinchHasBoundedAcquisitionWindow(float delay,bool accepted)
         {

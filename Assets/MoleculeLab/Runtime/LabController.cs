@@ -58,7 +58,13 @@ namespace MoleculeLab
                 if(renderer.GetComponent<Collider>()!=null || renderer.GetComponent<TMPro.TMP_Text>()!=null) continue;
                 var imported=false;
                 for(var t=renderer.transform;t!=null && t!=Environment.transform;t=t.parent) if(t.name.StartsWith("Fixed Kenney")) { imported=true; break; }
-                if(imported) renderer.gameObject.AddComponent<BoxCollider>();
+                if(!imported) continue;
+                // Static batching hides the mesh from a BoxCollider added at runtime, so size a child box from the renderer bounds.
+                var bounds=renderer.bounds; var meshTransform=renderer.transform; var scale=meshTransform.lossyScale;
+                var holder=new GameObject("Runtime collider"); holder.transform.SetParent(meshTransform,false);
+                var box=holder.AddComponent<BoxCollider>();
+                box.center=meshTransform.InverseTransformPoint(bounds.center);
+                box.size=new Vector3(bounds.size.x/Mathf.Max(1e-4f,Mathf.Abs(scale.x)),bounds.size.y/Mathf.Max(1e-4f,Mathf.Abs(scale.y)),bounds.size.z/Mathf.Max(1e-4f,Mathf.Abs(scale.z)));
             }
         }
         public LabEnvironment Environment { get; private set; }
@@ -67,9 +73,19 @@ namespace MoleculeLab
         [Range(.02f,.12f)] public float snapDistance=.05f;
         [Range(5,45)] public float snapAngle=15;
         [Min(0)] public float seedTransferDuration=.33f;
-        [Tooltip("Baskets refill instantly, so atoms never run out. Toggle in Settings.")]
+        [Tooltip("Seconds an atom taken from a beaker may lie unused before it disappears.")]
+        [Min(1)] public float idleAtomSeconds=10;
+        [Tooltip("Beakers refill instantly, so atoms never run out.")]
         public bool unlimitedAtoms=true;
-        ElementRack rack;
+        [Tooltip("Optional beaker model. Empty: the ClassroomKit's beaker, or a glass beaker drawn procedurally.")]
+        public GameObject beakerPrefab;
+        [Header("Bright classroom")]
+        [Tooltip("Dress the room as a bright classroom using the imported asset packs (Resources/ClassroomKit).")]
+        public bool brightClassroom=true;
+        [Tooltip("Empty: loaded from Resources/ClassroomKit, which Molecule Lab > Set up imported asset packs fills in.")]
+        public ClassroomKit classroomKit;
+        public ClassroomBuilder Classroom { get; private set; }
+        BeakerShelf leftShelf, rightShelf;
         string[] socketLayout;
         public bool ReducedEffects { get; private set; }
         bool muted, hints=true;
@@ -112,6 +128,7 @@ namespace MoleculeLab
             if (font != null) TMP_Settings.defaultFontAsset = font;
             BuildEnvironment();
             CreateUI();
+            EnableTeleport();
             audioSource = gameObject.AddComponent<AudioSource>(); audioSource.spatialBlend = 0; audioSource.volume = .16f;
             successTone = AudioClip.Create("Bond confirmation", 4800, 1, 24000, false);
             var samples = new float[4800];
@@ -151,12 +168,22 @@ namespace MoleculeLab
             // Extra elements (N, S, P, F, Cl, Br) get their own shelf; scene-assigned element assets win.
             var extra=ElementCatalog.Extra.Where(spec=>elements.All(e=>e==null || e.symbol!=spec.Symbol)).Select(ElementCatalog.Create).ToArray();
             ownedResources.AddRange(extra); elements=elements.Concat(extra).ToArray();
-            var rackElements=ElementCatalog.Extra.Select(spec=>elements.First(e=>e!=null && e.symbol==spec.Symbol)).ToArray();
-            rack=ElementRack.Create(Environment.workstation,rackElements);
-            Environment.extraSockets=rack.Sockets; var firstExtra=Environment.sockets.Length;
-            Environment.extraCounts=inventory=>rack.UpdateCounts(inventory,firstExtra);
-            socketLayout=Enumerable.Range(0,Environment.sockets.Length).Select(i=>i<8?"C":i<16?"O":"H").Concat(rack.SocketSymbols).ToArray();
+            // Imported asset packs (see ClassroomKit): the lab pack's beaker holds the atoms unless one is assigned here.
+            if(classroomKit==null) classroomKit=Resources.Load<ClassroomKit>("ClassroomKit");
+            if(beakerPrefab==null && classroomKit!=null) beakerPrefab=classroomKit.beaker;
+            // Endless beakers on two shelves replace the prefab's finite baskets.
+            ElementDefinition[] Pick(params string[] symbols) => symbols.Select(s=>elements.FirstOrDefault(e=>e!=null && e.symbol==s)).ToArray();
+            var prefabShelf=Environment.workstation.Find("Reachable atom shelf"); if(prefabShelf!=null) prefabShelf.gameObject.SetActive(false);
+            // Beakers stand on lab-pack tables either side of the bench (or on simple shelves without the pack).
+            var beakerTable=brightClassroom && classroomKit!=null?classroomKit.desk:null; var sideX=beakerTable!=null?1.5f:.92f; var sideZ=beakerTable!=null?-.05f:-.26f;
+            leftShelf=BeakerShelf.Create(Environment.workstation,"Beaker shelf left (runtime)",new Vector3(-sideX,0,sideZ),-65,new[]{Pick("H","C","O"),Pick("N","S","P")},beakerPrefab,classroomKit?.woodMaterial,classroomKit?.metalMaterial,beakerTable);
+            rightShelf=BeakerShelf.Create(Environment.workstation,"Beaker shelf right (runtime)",new Vector3(sideX,0,sideZ),65,new[]{Pick("F","Cl","Br")},beakerPrefab,classroomKit?.woodMaterial,classroomKit?.metalMaterial,beakerTable);
+            Environment.runtimeSockets=leftShelf.Sockets.Concat(rightShelf.Sockets).ToArray();
+            socketLayout=leftShelf.SocketSymbols.Concat(rightShelf.SocketSymbols).ToArray();
+            unlimitedAtoms=true;
             BuildGallery();
+            BuildPhysicalControls();
+            if(brightClassroom) Classroom=ClassroomBuilder.Create(Environment,classroomKit,galleryRoom!=null?galleryRoom.transform:null);
             preview=new GameObject("Bond placement feedback").AddComponent<BondPreview>(); preview.Initialize(this);
             dynamicRoot = new GameObject("Session objects").transform; dynamicRoot.SetParent(transform);
             twistHandle = new GameObject("Twist handle").AddComponent<InspectionHandle>(); twistHandle.Initialize(this,false);
@@ -178,7 +205,8 @@ namespace MoleculeLab
         public void SetMode(LabMode mode)
         {
             if(reacting) { Notify("Wait for the reaction to finish, or reset the bench."); return; }
-            if(checkingStructure) { Notify("Wait for the PubChem check to finish."); return; }
+            // Tabs must always work: switching away cancels a pending PubChem check instead of refusing.
+            if(checkingStructure) CancelFreeCheck();
             CancelInteractions();
             // Leaving free build returns an unfinished structure, like switching an unfinished recipe.
             if(mode!=LabMode.Free && freeView!=null) ClearFreeStructure(false);
@@ -188,7 +216,7 @@ namespace MoleculeLab
             if(Selected!=null) { Selected.ShowGeometry(mode==LabMode.Inspect); Selected.Bend(0); }
             if(mode==LabMode.Inspect && Selected!=null && Selected.State.Complete) Achieve("inspect");
             Notify(mode==LabMode.Build?"Choose a molecule. Direction guides show valid bonding sites.":mode==LabMode.Inspect?"Grab a molecule to inspect. Ethane supports twisting and the energy wand.":
-                mode==LabMode.Free?"Free build: drop any basket atom on the teal ring and keep bonding. Finished molecules are checked in PubChem automatically.":"Choose a reaction, build its inputs, dock them, select conditions, then activate.");
+                mode==LabMode.Free?"Free build: take an atom from a beaker, drop it on the teal ring and keep bonding. Finished molecules are checked in PubChem automatically.":"Choose a reaction, build its inputs, dock them, select conditions, then activate.");
         }
         public void Select(MoleculeView view)
         {
@@ -228,7 +256,7 @@ namespace MoleculeLab
         {
             var token=Inventory.Tokens[id]; if(token.Owner!=AtomInventory.Shelf) return; // retired atoms leave play
             var element=elements.First(e=>e!=null && e.symbol==token.Symbol);
-            var go=LabVisuals.Shape(element.symbol+" atom "+id,PrimitiveType.Sphere,dynamicRoot,Vector3.zero,Vector3.one*element.radius*2,element.color);
+            var go=LabVisuals.Shape(element.symbol+" atom "+id,PrimitiveType.Sphere,dynamicRoot,Vector3.zero,Vector3.one*element.radius*2*LabVisuals.AtomScale,element.color);
             go.transform.position=Environment.SocketPosition(token.Socket); var atom=go.AddComponent<LooseAtom>(); atom.Initialize(this,element,id); loose.Add(atom);
         }
         public void RefreshStock() { if(Inventory!=null) Environment.UpdateCounts(Inventory); }
@@ -246,7 +274,7 @@ namespace MoleculeLab
         public void SetUnlimitedAtoms(bool unlimited)
         {
             unlimitedAtoms=unlimited; if(Inventory!=null) Inventory.Unlimited=unlimited; RefreshStock();
-            Notify(unlimited?"Unlimited atoms: baskets refill as soon as you take an atom.":"Finite atoms: every basket holds a fixed stock, as in the lesson.");
+            Notify(unlimited?"Endless beakers: a fresh atom appears as soon as you take one.":"Finite atoms: every beaker holds a fixed stock.");
         }
         public void ClearPreview(LooseAtom atom=null) { if(preview!=null) preview.Clear(atom); if(freeView!=null) freeView.ClearPreview(atom); }
         public void PreviewAtom(LooseAtom atom)
@@ -327,8 +355,7 @@ namespace MoleculeLab
         }
         public void MoleculeCompleted(MoleculeView view)
         {
-            var isNew=RecordInGallery(view.Definition);
-            Select(view); Notify(view.Definition.displayName+" complete. Grab it with one or two hands."+GalleryNote(isNew)); audioSource.PlayOneShot(completeTone); Achieve("build"); Completed?.Invoke(view);
+            Select(view); Notify(view.Definition.displayName+" complete. Drop it in the GALLERY bin to keep it, or the TRASH bin to discard it."); audioSource.PlayOneShot(completeTone); Achieve("build"); Completed?.Invoke(view);
         }
         public void MoleculeReleased(MoleculeView view)
         {
@@ -477,7 +504,7 @@ namespace MoleculeLab
             Inventory=new AtomInventory(socketLayout,unlimitedAtoms); Inventory.Refilled+=SpawnShelfAtom;
             Resetting=false; for(var id=0;id<Inventory.Tokens.Count;id++) SpawnShelfAtom(id); RefreshStock();
             ActiveReaction=waterReaction; SelectedCondition=ReactionCondition.None;
-            energyTool.ReturnHome(); EnergyProgress(0); UpdateTray(); Mode=LabMode.Build; settingsPage=false; moleculePage=0; modeText.text="BUILD MODE"; RebuildMenu(); Notify(unlimitedAtoms?"Choose a recipe, or open FREE BUILD. Baskets refill automatically.":"Choose a recipe. Every atom is back on the shelves.");
+            energyTool.ReturnHome(); EnergyProgress(0); UpdateTray(); Mode=LabMode.Build; settingsPage=false; moleculePage=0; modeText.text="BUILD MODE"; RebuildMenu(); Notify(unlimitedAtoms?"Choose a recipe, or open FREE BUILD. The beakers never run out.":"Choose a recipe. Every atom is back on the shelves.");
         }
         void Update()
         {

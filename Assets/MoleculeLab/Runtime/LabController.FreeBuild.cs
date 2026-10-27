@@ -15,7 +15,7 @@ namespace MoleculeLab
         [Header("Free build")]
         [Range(.03f,.12f)] public float freeSnapDistance=.07f;
         [Range(.06f,.2f)] public float ringSnapDistance=.13f;
-        [Tooltip("Releasing a basket atom this close to the build spot starts a free structure.")]
+        [Tooltip("Releasing a beaker atom this close to the build spot starts a free structure.")]
         [Range(.1f,.6f)] public float freeSeedDistance=.3f;
         [Min(1)] public float freeRetrySeconds=8;
         /// <summary>Structure identification service. Defaults to PubChem with an on-device cache; tests may replace it.</summary>
@@ -31,8 +31,15 @@ namespace MoleculeLab
         LineRenderer dropZone;
         TextMeshPro dropLabel;
         const int MaximumFreeRetries=3;
-        const string FreeInstructions="FREE BUILD\nDrop any basket atom on the ring to start; release atoms on teal dots to bond. Push two atoms together for a double bond or a ring; pull an end atom off to remove it. Finished molecules are checked in PubChem automatically.";
+        const string FreeInstructions="FREE BUILD\nTake an atom from a beaker and drop it on the ring. Release more atoms on the dots to bond them. Push two atoms together for a double bond or a ring; pull an end atom off to remove it.";
 
+        /// <summary>Abandons a running PubChem check (its answer is ignored) and unlocks the structure.</summary>
+        void CancelFreeCheck()
+        {
+            if(!checkingStructure) return;
+            lookupSession++; checkingStructure=false;
+            if(freeView!=null) { freeView.SetLocked(false); freeView.SetStatus("Check cancelled.",FreeBuildView.IncompleteColor); }
+        }
         void EnsureMoleculeLookup()
         {
             if(MoleculeLookup==null) MoleculeLookup=new PubChemClient(Path.Combine(Application.persistentDataPath,"PubChemCache"));
@@ -46,7 +53,7 @@ namespace MoleculeLab
         {
             if(reacting) { Notify("Wait for the reaction to finish."); return false; }
             if(checkingStructure) { Notify("Wait for the PubChem check to finish."); return false; }
-            if(freeView==null || freeView.Structure.Count==0) { Notify("Drop any basket atom on the teal ring to start."); return false; }
+            if(freeView==null || freeView.Structure.Count==0) { Notify("Take an atom from a beaker and drop it on the teal ring to start."); return false; }
             return true;
         }
         void CreateFreeView()
@@ -158,7 +165,7 @@ namespace MoleculeLab
             var name=view.Structure.Label(atom);
             var token=view.RemoveAtom(atom);
             if(token>=0 && Inventory.Transfer(token,view.Owner,AtomInventory.Shelf)) SpawnShelfAtom(token);
-            RefreshStock(); Notify(name+" returned to its basket.");
+            RefreshStock(); Notify(name+" was put back.");
             FreeStructureChanged();
         }
 
@@ -200,7 +207,7 @@ namespace MoleculeLab
         public void ClearFreeStructure(bool notify)
         {
             if(freeView==null) return;
-            if(checkingStructure) { Notify("Wait for the PubChem check to finish."); return; }
+            CancelFreeCheck();
             foreach(var token in freeView.Structure.TokenIds.ToArray())
                 if(token>=0 && Inventory.Transfer(token,freeView.Owner,AtomInventory.Shelf)) SpawnShelfAtom(token);
             DestroyFreeView(); RefreshStock(); UpdateTray();
@@ -283,7 +290,7 @@ namespace MoleculeLab
                     var title=string.IsNullOrEmpty(result.title)?definition.displayName:result.title;
                     if(!discoveries.Contains(title)) discoveries.Add(title);
                     ConvertFreeStructure(definition);
-                    var galleryNote=GalleryNote(RecordInGallery(definition));
+                    const string galleryNote=" Drop it in the GALLERY bin to keep it, or the TRASH bin to discard it.";
                     var detail=catalogue!=null?"It matches the lab's "+catalogue.displayName+" recipe, so it works in reactions."
                         :usedConformer?"Now showing PubChem's 3D shape.":"PubChem has no 3D shape for it, so your geometry is kept.";
                     Notify("PubChem CID "+result.cid+": "+title+(string.IsNullOrEmpty(result.iupacName) || result.iupacName.Equals(title,StringComparison.OrdinalIgnoreCase)?"":" ("+result.iupacName+")")+", "+(result.molecularFormula??graph.Formula())+". "+detail+galleryNote,true);
@@ -302,7 +309,7 @@ namespace MoleculeLab
                     {
                         if(!discoveries.Contains(catalogue.displayName)) discoveries.Add(catalogue.displayName);
                         ConvertFreeStructure(catalogue);
-                        Notify("PubChem is unreachable, but this matches the lab's "+catalogue.displayName+" recipe."+GalleryNote(RecordInGallery(catalogue)),true);
+                        Notify("PubChem is unreachable, but this matches the lab's "+catalogue.displayName+" recipe. Drop it in the GALLERY bin to keep it.",true);
                     }
                     else if(freeRetries<MaximumFreeRetries)
                     {
@@ -341,7 +348,7 @@ namespace MoleculeLab
             }
             if(tokens.Count!=0) throw new InvalidOperationException("Unassigned atoms after identification");
             DestroyFreeView();
-            var extent=definition.atoms.Max(a=>a.position.magnitude+a.element.radius);
+            var extent=definition.atoms.Max(a=>a.position.magnitude+a.element.radius*LabVisuals.AtomScale);
             if(extent>.35f) molecule.transform.localScale=Vector3.one*MoleculeScaleTransformer.ClampScale(.35f/extent);
             Select(molecule); audioSource.PlayOneShot(completeTone); Achieve("build"); Completed?.Invoke(molecule); UpdateTray();
             return molecule;
@@ -371,7 +378,7 @@ namespace MoleculeLab
         string FreeStatusText()
         {
             if(freeView==null || freeView.Structure.Count==0)
-                return "No structure yet.\nPick any atom from a basket and drop it on the teal ring.";
+                return "No structure yet.\nTake any atom from a beaker and drop it on the teal ring.";
             var s=freeView.Structure; var open=s.TotalOpenValence;
             var state=freeView.StatusText; var newline=state.IndexOf('\n');
             return s.Graph.Formula()+"   "+s.Count+" atoms   "+(open==0?"complete":open+" open bond"+(open==1?"":"s"))+
@@ -384,18 +391,12 @@ namespace MoleculeLab
         }
         void BuildFreePage(Transform page)
         {
-            var editable=!checkingStructure;
-            Button(page,"Fill hydrogens",new Vector2(-645,300),new Vector2(370,80),FillHydrogens).interactable=editable;
-            Button(page,"Undo last atom",new Vector2(-255,300),new Vector2(370,80),UndoFreeAtom).interactable=editable;
-            Button(page,checkingStructure?"Checking...":"Check now",new Vector2(-645,175),new Vector2(370,80),CheckFreeStructure).interactable=editable;
-            Button(page,"Clear",new Vector2(-255,175),new Vector2(370,80),()=>ClearFreeStructure(true)).interactable=editable;
-            Button(page,"< Bond",new Vector2(-710,50),new Vector2(240,80),()=>SelectFreeBond(-1)).interactable=editable;
-            Button(page,"Bond >",new Vector2(-450,50),new Vector2(240,80),()=>SelectFreeBond(1)).interactable=editable;
-            Button(page,"Bond order",new Vector2(-190,50),new Vector2(240,80),CycleFreeBondOrder).interactable=editable;
-            Button(page,"Tidy shape",new Vector2(-645,-75),new Vector2(370,80),TidyFreeStructure).interactable=editable;
-            Text(page,"Optional shortcuts. Building needs no buttons.",new Vector2(-450,-190),new Vector2(760,60),24,new Color(.7f,.8f,.85f));
+            // Three always-working shortcuts; everything else is done by hand.
+            Button(page,"Fill hydrogens",new Vector2(-450,300),new Vector2(760,90),FillHydrogens);
+            Button(page,"Undo last atom",new Vector2(-450,175),new Vector2(760,90),UndoFreeAtom);
+            Button(page,"Clear structure",new Vector2(-450,50),new Vector2(760,90),()=>ClearFreeStructure(true));
             lesson.text=hints?FreeInstructions:"Hints hidden. Placement feedback stays enabled.";
-            energyText.text=FreeDiscoveryText();
+            energyText.text="";
         }
     }
 }

@@ -50,6 +50,8 @@ namespace MoleculeLab
         }
         public bool IsRetired(int id) => id>=0 && id<tokens.Count && tokens[id].Owner==Retired;
         public int Available(string symbol) => tokens.Count(t=>t.Symbol==symbol && t.Owner==Shelf);
+        /// <summary>How many atoms of this element the shelves (beakers) hold when full.</summary>
+        public int Capacity(string symbol) => sockets.Count(s=>s==symbol);
         public int FirstAvailable(string symbol) => tokens.FindIndex(t=>t.Symbol==symbol && t.Owner==Shelf);
         /// <summary>Tokens still in play (on the shelf, held, or in a molecule).</summary>
         public IEnumerable<Token> Live => tokens.Where(t=>t.Owner!=Retired);

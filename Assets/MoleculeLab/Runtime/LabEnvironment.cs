@@ -10,9 +10,12 @@ namespace MoleculeLab
         /// <summary>Sockets added at runtime (the extra element shelf), numbered after the prefab's own sockets.</summary>
         [System.NonSerialized] public Transform[] extraSockets=new Transform[0];
         [System.NonSerialized] public System.Action<AtomInventory> extraCounts;
-        public Vector3 SocketPosition(int socket) => socket<sockets.Length?sockets[socket].position:extraSockets[socket-sockets.Length].position;
+        /// <summary>When set (runtime beaker shelves), these replace the prefab's basket sockets entirely.</summary>
+        [System.NonSerialized] public Transform[] runtimeSockets;
+        public Vector3 SocketPosition(int socket) => runtimeSockets!=null?runtimeSockets[socket].position:socket<sockets.Length?sockets[socket].position:extraSockets[socket-sockets.Length].position;
         public void UpdateCounts(AtomInventory inventory)
         {
+            if(runtimeSockets!=null) { extraCounts?.Invoke(inventory); return; } // beakers are endless: no counters
             for(var basket=0;basket<4;basket++)
             {
                 var first=basket==0?0:basket==1?8:basket==2?16:32; var count=basket<2?8:16; var n=0;

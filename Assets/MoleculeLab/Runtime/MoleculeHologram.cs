@@ -66,27 +66,38 @@ namespace MoleculeLab
             var entry=exhibit.Entry;
             title.text=entry.name;
             subtitle.text=entry.formula+(entry.cid>0?"   |   PubChem CID "+entry.cid:"")+(entry.timesBuilt>1?"   |   built "+entry.timesBuilt+" times":"");
-            body.text="<color=#59FFEB>Asking PubChem about this molecule...</color>";
+            body.text="Asking PubChem about this molecule...";
             footer.text="";
             gameObject.SetActive(true); Follow(true);
         }
-        /// <summary>Fills in PubChem's answer, if the hologram is still showing that exhibit.</summary>
+        /// <summary>Fills in PubChem's answer, if the hologram is still showing that exhibit. Every gap gets a plain explanation.</summary>
         public void SetInfo(string entryId,MoleculeInfo info,string iupacName)
         {
             if(entryId!=EntryId || Target==null) return;
             var entry=Target.Entry;
             if(info!=null && info.cid>0) subtitle.text=entry.formula+(string.IsNullOrEmpty(iupacName) || iupacName.Equals(entry.name,System.StringComparison.OrdinalIgnoreCase)?"":"   |   "+iupacName)+"   |   PubChem CID "+info.cid;
-            if(info==null || info.status!=LookupStatus.Found)
-            {
-                body.text="<color=#59FFEB><b>What it is</b></color>\n"+(entry.detail=="Lab recipe"?"One of the lab's recipe molecules.":entry.detail)+
-                    "\n\n<color=#FFB27A>"+(info!=null && !string.IsNullOrEmpty(info.message)?info.message:"PubChem has no record of this structure.")+"</color>";
-                footer.text="PubChem data unavailable";
-                return;
-            }
-            var text="<color=#59FFEB><b>What it is</b></color>\n"+(string.IsNullOrEmpty(info.description)?"PubChem has no description for this compound.":info.description);
-            text+="\n\n<color=#59FFEB><b>Commonly used for</b></color>\n"+(info.uses==null || info.uses.Length==0?"PubChem lists no uses for this compound.":string.Join("\n",info.uses.Select(u=>"- "+u)));
-            body.text=text;
-            footer.text="Source: PubChem CID "+info.cid+(string.IsNullOrEmpty(info.descriptionSource)?"":"   |   description: "+info.descriptionSource);
+            body.text=Compose(entry,info);
+            footer.text=info!=null && info.status==LookupStatus.Found?"Source: PubChem CID "+info.cid+(string.IsNullOrEmpty(info.descriptionSource)?"":"   |   description: "+info.descriptionSource):
+                info!=null && info.status==LookupStatus.Error?"PubChem could not be reached":"No PubChem record";
+        }
+        /// <summary>The screen text for every case: full data, partial data, no record, or no connection.</summary>
+        public static string Compose(GalleryEntry entry,MoleculeInfo info)
+        {
+            var name=entry!=null?entry.name:"This molecule";
+            if(info==null || info.status==LookupStatus.Error)
+                return "<b>No information available right now</b>\nThe headset could not reach PubChem, so there is no description to show. "+
+                    "Check that the headset is connected to Wi-Fi, then put "+name+" down and pick it up again.";
+            if(info.status!=LookupStatus.Found)
+                return "<b>Not found in PubChem</b>\nPubChem has no record of this exact structure, so there is no description or list of uses. "+
+                    "The structure follows the valence rules, but it may be unstable, very unusual, or simply not yet reported by chemists.";
+            var hasDescription=!string.IsNullOrEmpty(info.description);
+            var hasUses=info.uses!=null && info.uses.Length>0;
+            if(!hasDescription && !hasUses)
+                return "<b>No description available</b>\nPubChem confirms this compound (CID "+info.cid+"), but nobody has written a summary or listed its uses yet. "+
+                    "That is common for less-studied molecules. The name and formula above are still correct.";
+            var text="<b>What it is</b>\n"+(hasDescription?info.description:"PubChem has no written description of "+name+" yet; only its structure and identifiers are recorded.");
+            text+="\n\n<b>Commonly used for</b>\n"+(hasUses?string.Join("\n",info.uses.Select(u=>"- "+u)):"No uses are recorded in PubChem for "+name+". It may be used mainly in research, or its uses are not documented.");
+            return text;
         }
         public void HideLater(GalleryExhibit exhibit,float seconds) { if(exhibit==Target) hideAt=Time.time+seconds; }
         public void Hide() { Target=null; EntryId=null; gameObject.SetActive(false); }

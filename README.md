@@ -2,7 +2,9 @@ Current hand controls and test worksheet: [Hand interaction repair](Documentatio
 
 # Molecule Lab VR
 
-**27 October:** six more elements (N, S, P, F, Cl, Br) on a second shelf to the right of the bench; baskets are unlimited by default (Settings > Atoms: unlimited/finite); finished molecules fall under gravity; and a **molecule gallery** behind you (the old front wall is now an opening) shows a copy of every molecule you complete, saved between sessions. See [Free build and PubChem](Documentation/FREE_BUILD.md#gallery-elements-and-unlimited-atoms).
+**27 October (2):** endless glass beakers with smaller atoms replace the baskets; finished molecules go in the **GALLERY** or **TRASH** bin; a red **RESET** button on the bench replaces the menu reset; controller teleport; a simpler FREE BUILD panel (Fill hydrogens / Undo / Clear); unused atoms vanish after 10 s; menu tabs always switch. Only the gallery is remembered between sessions. See [Free build and PubChem](Documentation/FREE_BUILD.md#bins-reset-button-and-moving-around).
+
+**27 October:** six more elements (N, S, P, F, Cl, Br) on a second shelf to the right of the bench; baskets are unlimited by default (Settings > Atoms: unlimited/finite); finished molecules fall under gravity; and a **molecule gallery** behind you (the old front wall is now an opening) shows a copy of every molecule you complete, saved between sessions. See [Free build and PubChem](Documentation/FREE_BUILD.md#gallery-elements-and-endless-atoms).
 
 **26 October free build:** a new FREE BUILD tab lets you build any structure by hand (drop an atom on the ring, snap more on, push atoms together for double bonds or rings); when it is complete it is checked in PubChem automatically and locked with its PubChem name, CID and 3D shape. Quest builds now request internet access. See [Free build and PubChem](Documentation/FREE_BUILD.md). Headset acceptance pending.
 
@@ -13,10 +15,10 @@ Standalone Quest 3 teaching prototype, Unity **6000.6.2f1**. Open `Assets/Scenes
 ## Academic lab redesign
 
 - Modern teaching room with a central bench, reachable side shelf, fixed reagent archive, element poster and instrument workstation.
-- **8 C, 8 O, 32 H**, visible in four baskets. Every atom has a persistent identity; no unlimited replenishment.
+- Nine elements in endless beakers on the side shelves; every atom in play still has a tracked identity.
 - Choose a recipe to transfer its seed from the shelf. Take atoms, follow directional guides, and release when the ring says **Release to bond**.
 - Initial bonding thresholds: 18 cm preview, 5 cm snap radius and 15-degree direction tolerance, exposed on LabController. The electrical effect is a teaching cue, not simulated chemistry.
-- Return loose atoms, recycle selected molecules, or reset the full stock. Switching an unfinished recipe returns its atoms. Recycling one radical recycles the pair.
+- Keep a finished molecule by dropping it in the gallery bin, or discard it in the trash bin. The red button on the bench resets the lab (the gallery is kept).
 - Mute, reduced effects and optional lesson hints are available on the display.
 
 Hands and Touch Plus controllers share the XRI input modality manager. Use nearby pinch/grip to grab and ray/pinch or controller ray/trigger to press controls. Hand rays operate menus and grab objects at a distance; poke activation is disabled. Green direction guides indicate available authored sites; wrong element, direction, distance and occupied sites cannot create bonds.

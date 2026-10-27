@@ -35,7 +35,8 @@ namespace MoleculeLab
     public sealed class FreeBuildView : MonoBehaviour
     {
         static readonly Color BondColor=new Color(.55f,.7f,.78f), SelectedColor=new Color(1f,.78f,.25f), GuideColor=new Color(.2f,.85f,.75f);
-        public static readonly Color IncompleteColor=new Color(1f,.82f,.35f), CheckingColor=new Color(.4f,1f,.85f), ProblemColor=new Color(1f,.55f,.35f);
+        // Plain white status text: the words carry the meaning, not the colour.
+        public static readonly Color IncompleteColor=Color.white, CheckingColor=Color.white, ProblemColor=Color.white;
         /// <summary>Releasing an end atom this far (metres, centre to centre) from its neighbour removes it.</summary>
         public const float PullOffDistance=.34f;
         public FreeStructure Structure { get; } = new FreeStructure();
@@ -87,10 +88,11 @@ namespace MoleculeLab
         {
             var index=Structure.AddAtom(element.symbol,element.maximumBondOrder,local,token);
             if(anchor>=0) { Structure.AddBond(anchor,index); SelectedBond=Structure.Graph.Bonds.Count-1; }
-            var shape=LabVisuals.Shape(element.symbol+" free atom",PrimitiveType.Sphere,transform,local,Vector3.one*element.radius*2,element.color).transform;
+            var shape=LabVisuals.Shape(element.symbol+" free atom",PrimitiveType.Sphere,transform,local,Vector3.one*element.radius*2*LabVisuals.AtomScale,element.color).transform;
             var handle=shape.gameObject.AddComponent<FreeAtomHandle>(); handle.Index=index;
             var body=shape.gameObject.AddComponent<Rigidbody>(); body.useGravity=false; body.isKinematic=true;
-            body.interpolation=RigidbodyInterpolation.Interpolate; body.collisionDetectionMode=CollisionDetectionMode.ContinuousSpeculative;
+            // No interpolation: this view places the atoms itself every frame, and interpolation would drag them back to the last physics pose.
+            body.interpolation=RigidbodyInterpolation.None; body.collisionDetectionMode=CollisionDetectionMode.ContinuousSpeculative;
             var grab=shape.gameObject.AddComponent<XRGrabInteractable>();
             grab.throwOnDetach=false; grab.movementType=XRBaseInteractable.MovementType.VelocityTracking;
             // A distance grab must not pull the atom into the hand: it stays on the ray, so it can still be pushed into its partner.

@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d32cf3a5c5cabd4b9029810626b244d, type: 3}
+  m_Name: ClassroomKit
+  m_EditorClassIdentifier: MoleculeLab.Runtime::MoleculeLab.ClassroomKit
+  beaker: {fileID: 375499282934692910, guid: 1836ec5a4a9706d42b8941d84940196f, type: 3}
+  labCounter: {fileID: 3777058534420937386, guid: 58d93148047363d45a12c673b277817d, type: 3}
+  desk: {fileID: 7846110631755829673, guid: 6c1097bff3e3b5944b5edd14758d2ea0, type: 3}
+  chair: {fileID: 7619521233714750763, guid: 00f2ce65178270a459700e0c08c55a4f, type: 3}
+  wallRack: {fileID: 7112059431661060959, guid: 513546a837bb5d44cbbb2f9939336861, type: 3}
+  storageBox: {fileID: 8308827090525536746, guid: 39cc7f30cb7643c4788fafb36317e6f0, type: 3}
+  instrument: {fileID: 4361729496969279519, guid: 828ad3f10ce3c7444b8f53141cc495e6, type: 3}
+  tap: {fileID: 6296904470243763194, guid: db90a77efe2e41f438b4f71f4dbca71e, type: 3}
+  erlenmeyer: {fileID: 8482147909517439867, guid: 82efbd6f209a6ab4c8e561fcd37a4810, type: 3}
+  florence: {fileID: 2924298259548178806, guid: 61c67c3c4a5f20f4b9b0d61fea197d67, type: 3}
+  beakerWater: {fileID: 9028627854349766800, guid: 24c728c68968f6447b856666f27564a5, type: 3}
+  cylinder: {fileID: 2924589560471003509, guid: 1facb00fc6b330b4590ed152a3aadcd3, type: 3}
+  spiritLamp: {fileID: 3438127250079161632, guid: ff25b715f02cfd947b8608c3d7de53c9, type: 3}
+  boilingStand: {fileID: 6344767980783267782, guid: 5a995f9fd8fafcf479304ec16ce9c299, type: 3}
+  funnel: {fileID: 5008574708123014359, guid: fafcb18b3640bbc4a9d8f89ffd6f3b21, type: 3}
+  chinaDish: {fileID: 4426775741159348892, guid: 255b4818040390b40b67510d8b7d9c52, type: 3}
+  testTube: {fileID: 4661188770769472284, guid: cbb3159864b0a1348ab992ae9813d64d, type: 3}
+  erlenmeyerEmpty: {fileID: 8091605564447400925, guid: e833bb11c8758f44a98ec0e99fba76d9, type: 3}
+  wallPanelWide: {fileID: 2579008771072862727, guid: 336cf6d9bc2bb0a459882672bd7ad7f4, type: 3}
+  wallPanelNarrow: {fileID: 3843869221505158442, guid: 5fb2cd9f424f6ae4bb0adcefe0b637b5, type: 3}
+  canister: {fileID: 7080806414619094694, guid: 5a84747fa7b715147bbb89c8b55e3bcc, type: 3}
+  scifiBox: {fileID: 968165214316191884, guid: bd30cfd9de03ee34c93f0cde38f32df1, type: 3}
+  sideLight: {fileID: 190376, guid: f7d75a18118f54bee9d051f36d865205, type: 3}
+  labSign: {fileID: 100002, guid: a3b6d4015e1d7447290336441c0a82c6, type: 3}
+  labWall: {fileID: 1157815733408451400, guid: 90dbb427ac5963541b1cdbc7520999e3, type: 3}
+  labFloor: {fileID: 999871026499586435, guid: 5d77a75c98992b840b27e02e065df54f, type: 3}
+  labRoof: {fileID: 8869470478512487859, guid: 9733e4fa88518774b8a9132505e18863, type: 3}
+  labShelf: {fileID: 2581742485220959495, guid: f2629ace2826e974393b395f2af2bb50, type: 3}
+  labWaterShelf: {fileID: 2721261975605995626, guid: 015d07e8f9746c94eb8cd53e5b0964ab, type: 3}
+  woodMaterial: {fileID: 2100000, guid: bf1b930b1fba9db409872196db946d5c, type: 2}
+  metalMaterial: {fileID: 2100000, guid: 935190269a0097e468613dae1055aa8f, type: 2}
+  scifiWall: {fileID: 100014, guid: ac93356612ce24c718977a61ed7246de, type: 3}
+  scifiWallAlt: {fileID: 100002, guid: a27242662722e417d9fe08ebbf85eb51, type: 3}
+  scifiFloor: {fileID: 100002, guid: be50ff3ed2fbe44349a64d3ac5fb98ee, type: 3}
+  scifiRoof: {fileID: 100002, guid: 43cae7f98873e473d96789cc6276b26f, type: 3}
+  floorTiles: {fileID: 2800000, guid: d2d753fdabd60e240b6f9a1f4f664682, type: 3}
+  floorNormal: {fileID: 2800000, guid: ae00e00c7806677439c6823dae4a38f4, type: 3}
