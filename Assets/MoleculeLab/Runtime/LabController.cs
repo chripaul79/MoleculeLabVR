@@ -30,7 +30,7 @@ namespace MoleculeLab
         public bool Resetting { get; private set; }
         public Vector3 BuildPosition => bench.position + new Vector3(-.12f,.46f,-.15f);
         /// <summary>Where dropped molecules are returned: above the left of the bench, clear of the build spot.</summary>
-        public Vector3 BenchDropPosition => bench.position + new Vector3(-.6f,.3f,.15f);
+        public Vector3 BenchDropPosition => bench.position + new Vector3(-.3f,.3f,.1f); // clear of the gallery hole
         /// <summary>Free build starts here: just above the bench (the recipe build spot is higher).</summary>
         public Vector3 FreeBuildPosition => bench.position + new Vector3(-.12f,.22f,-.15f);
         /// <summary>Height of the bench's working surface.</summary>
@@ -175,7 +175,7 @@ namespace MoleculeLab
             ElementDefinition[] Pick(params string[] symbols) => symbols.Select(s=>elements.FirstOrDefault(e=>e!=null && e.symbol==s)).ToArray();
             var prefabShelf=Environment.workstation.Find("Reachable atom shelf"); if(prefabShelf!=null) prefabShelf.gameObject.SetActive(false);
             // Beakers stand on lab-pack tables either side of the bench (or on simple shelves without the pack).
-            var beakerTable=brightClassroom && classroomKit!=null?classroomKit.desk:null; var sideX=beakerTable!=null?1.5f:.92f; var sideZ=beakerTable!=null?-.05f:-.26f;
+            var beakerTable=brightClassroom && classroomKit!=null?classroomKit.desk:null; var sideX=beakerTable!=null?1.7f:.92f; var sideZ=beakerTable!=null?-.05f:-.26f;
             leftShelf=BeakerShelf.Create(Environment.workstation,"Beaker shelf left (runtime)",new Vector3(-sideX,0,sideZ),-65,new[]{Pick("H","C","O"),Pick("N","S","P")},beakerPrefab,classroomKit?.woodMaterial,classroomKit?.metalMaterial,beakerTable);
             rightShelf=BeakerShelf.Create(Environment.workstation,"Beaker shelf right (runtime)",new Vector3(sideX,0,sideZ),65,new[]{Pick("F","Cl","Br")},beakerPrefab,classroomKit?.woodMaterial,classroomKit?.metalMaterial,beakerTable);
             Environment.runtimeSockets=leftShelf.Sockets.Concat(rightShelf.Sockets).ToArray();
@@ -355,7 +355,7 @@ namespace MoleculeLab
         }
         public void MoleculeCompleted(MoleculeView view)
         {
-            Select(view); Notify(view.Definition.displayName+" complete. Drop it in the GALLERY bin to keep it, or the TRASH bin to discard it."); audioSource.PlayOneShot(completeTone); Achieve("build"); Completed?.Invoke(view);
+            Select(view); Notify(view.Definition.displayName+" complete. Drop it in the GALLERY hole on the bench to keep it, or the TRASH bin to discard it."); audioSource.PlayOneShot(completeTone); Achieve("build"); Completed?.Invoke(view);
         }
         public void MoleculeReleased(MoleculeView view)
         {
@@ -494,8 +494,11 @@ namespace MoleculeLab
                 foreach(var interactor in atom.Grab.interactorsSelecting.ToArray()) atom.Grab.interactionManager.SelectCancel(interactor,atom.Grab);
             if(twistHandle!=null) twistHandle.Cancel(); if(bendHandle!=null) bendHandle.Cancel(); if(energyTool!=null) energyTool.Cancel();
         }
+        /// <summary>True once Start has built the room and filled the beakers.</summary>
+        public bool Ready => dynamicRoot!=null && Inventory!=null;
         public void ResetLab()
         {
+            if(dynamicRoot==null) return; // not started yet
             Resetting=true; StopAllCoroutines(); CancelInteractions(); reacting=false;
             exhibitInfoLoading.Clear(); if(hologram!=null) hologram.Hide();
             checkingStructure=false; lookupSession++; freeView=null; // destroyed with the session objects below

@@ -110,6 +110,35 @@ namespace MoleculeLab
             var go=new GameObject(gallery?"Gallery bin (runtime)":"Trash bin (runtime)"); go.transform.SetParent(parent,false); go.transform.localPosition=localPosition;
             var bin=go.AddComponent<MoleculeBin>(); bin.lab=lab; bin.IsGallery=gallery; bin.Build(); return bin;
         }
+        /// <summary>The gallery drop: a round hole in the workbench top. A finished molecule released over it is kept in the gallery.</summary>
+        public static MoleculeBin CreateHole(Transform bench,LabController lab,Vector3 localPosition)
+        {
+            var go=new GameObject("Gallery hole (runtime)"); go.transform.SetParent(bench,false); go.transform.localPosition=localPosition;
+            var bin=go.AddComponent<MoleculeBin>(); bin.lab=lab; bin.IsGallery=true; bin.BuildHole(); return bin;
+        }
+        public const float HoleRadius=.16f;
+        void BuildHole()
+        {
+            const float top=.041f; // the bench's working surface, in bench space
+            LabVisuals.Shape("Hole",PrimitiveType.Cylinder,transform,new Vector3(0,top,0),new Vector3(HoleRadius*2,.0012f,HoleRadius*2),new Color(.015f,.02f,.025f),false);
+            LabVisuals.Shape("Hole shadow",PrimitiveType.Cylinder,transform,new Vector3(0,top+.0004f,0),new Vector3(HoleRadius*1.55f,.0012f,HoleRadius*1.55f),Color.black,false);
+            void Rim(string n,float radius,float width,Color colour)
+            {
+                var rim=new GameObject(n).AddComponent<LineRenderer>(); rim.transform.SetParent(transform,false);
+                rim.useWorldSpace=false; rim.loop=true; rim.positionCount=48; rim.widthMultiplier=width; rim.sharedMaterial=LabVisuals.Material(colour);
+                for(var i=0;i<48;i++) { var a=i*Mathf.PI*2/48; rim.SetPosition(i,new Vector3(Mathf.Cos(a)*radius,top+.002f,Mathf.Sin(a)*radius)); }
+            }
+            Rim("Rim",HoleRadius,.012f,new Color(.78f,.8f,.82f)); Rim("Glow ring",HoleRadius+.02f,.006f,new Color(.3f,.85f,.75f));
+            // A plate on the bench in front of the hole, lying flat and readable from where the player stands.
+            var sign=LabVisuals.Label(transform,"GALLERY\n<size=60%>drop here to keep</size>",new Vector3(0,top+.002f,-HoleRadius-.07f),.032f);
+            var face=sign.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
+            sign.transform.localRotation=Quaternion.Euler(90,0,0); sign.rectTransform.sizeDelta=new Vector2(.4f,.1f);
+            sign.color=new Color(.95f,.97f,1f); sign.fontStyle=FontStyles.Bold; sign.outlineWidth=.2f; sign.outlineColor=new Color32(20,24,30,255);
+            feedback=LabVisuals.Label(transform,"",new Vector3(0,.38f,0),.03f); feedback.color=Color.white;
+            var opening=new GameObject("Drop zone"); opening.transform.SetParent(transform,false);
+            var trigger=opening.AddComponent<BoxCollider>(); trigger.isTrigger=true; trigger.center=new Vector3(0,top+.12f,0); trigger.size=new Vector3(HoleRadius*2,.24f,HoleRadius*2);
+            opening.AddComponent<BinDropZone>().bin=this;
+        }
         void Build()
         {
             var body=IsGallery?new Color(.13f,.42f,.46f):new Color(.24f,.25f,.28f);

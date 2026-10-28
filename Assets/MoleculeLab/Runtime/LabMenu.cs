@@ -48,7 +48,7 @@ namespace MoleculeLab
             for(var i=0;i<names.Length;i++) { var tab=i; Button(menuRoot,names[i],new Vector2(-704+i*352,455),new Vector2(330,80),()=> { if(tab==names.Length-1) { settingsPage=true; RebuildMenu(); } else SetMode(tabModes[tab]); }); }
             status=Text(menuRoot,"",new Vector2(0,-320),new Vector2(1670,130),27,Color.white);
             // Physical controls replace the old bottom-row buttons: red button = reset, bins = keep or discard.
-            Text(menuRoot,"KEEP a molecule: drop it in the GALLERY bin.   DISCARD: drop it in the TRASH bin.   RESET: press the red button on the bench.",new Vector2(0,-440),new Vector2(1690,70),25,Color.white);
+            Text(menuRoot,"KEEP a molecule: drop it in the GALLERY hole on the bench.   DISCARD: drop it in the TRASH bin.   RESET: press the red button on the bench.",new Vector2(0,-440),new Vector2(1690,70),25,Color.white);
             Text(menuRoot,"Grab: reach or point + pinch.  Menu: point, pinch, release.  Teleport: controller thumbstick.",new Vector2(0,-550),new Vector2(1690,70),23,new Color(.75f,.8f,.82f));
             RebuildMenu();
         }

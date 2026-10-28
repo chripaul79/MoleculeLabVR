@@ -12,18 +12,19 @@ namespace MoleculeLab
     /// </summary>
     public sealed class BeakerShelf : MonoBehaviour
     {
-        public const int AtomsPerBeaker=12;
-        public const float BeakerRadius=.06f, BeakerHeight=.15f;
+        public const int AtomsPerBeaker=14;
+        public const float BeakerRadius=.16f, BeakerHeight=.26f; // a bucket that holds 14 tennis-ball atoms with room to spare
         public Transform[] Sockets { get; private set; }
         public string[] SocketSymbols { get; private set; }
         static readonly Color Board=new Color(.9f,.89f,.85f), Metal=new Color(.48f,.55f,.56f), GlassEdge=new Color(.78f,.9f,.95f);
-        /// <summary>A pile of marbles: 6 on the bottom (one in the middle), 4 above, 2 on top.</summary>
+        /// <summary>A pile of marbles: 7 on the bottom (one in the middle), 5 above, 2 on top.</summary>
         static readonly Vector3[] AtomSpots=Pile();
         static Vector3[] Pile()
         {
-            var spots=new System.Collections.Generic.List<Vector3>{new Vector3(0,.016f,0)};
+            var spots=new System.Collections.Generic.List<Vector3>{new Vector3(0,.042f,0)};
             void Ring(int n,float radius,float y,float turn) { for(var i=0;i<n;i++) { var a=(turn+i*360f/n)*Mathf.Deg2Rad; spots.Add(new Vector3(Mathf.Cos(a)*radius,y,Mathf.Sin(a)*radius)); } }
-            Ring(5,.03f,.016f,18); Ring(4,.02f,.04f,45); Ring(2,.012f,.062f,0);
+            // Largest atom (bromine) is 3.7 cm in radius: outermost reach .077+.037=.114 m and top .16+.037=.197 m, inside the bucket.
+            Ring(6,.077f,.042f,0); Ring(5,.05f,.1f,36); Ring(2,.028f,.16f,90);
             return spots.ToArray();
         }
         static Mesh glassMesh;
@@ -47,18 +48,18 @@ namespace MoleculeLab
         {
             var sockets=new List<Transform>(); var symbols=new List<string>();
             // On a lab-pack table: one row of beakers per tier, front row nearest the player. Without one: the two-tier shelf.
-            var floor=-transform.position.y; var depth=tiers.Length>1?.62f:.42f;
-            var onTable=table!=null && FitModel(table,transform,"Beaker table",new Vector3(0,floor,0),new Vector3(.95f,TableHeight,depth))!=null;
+            var floor=-transform.position.y; var depth=tiers.Length>1?.9f:.52f;
+            var onTable=table!=null && FitModel(table,transform,"Beaker table",new Vector3(0,floor,0),new Vector3(1.24f,TableHeight,depth))!=null;
             if(!onTable) foreach(var x in new[]{-.55f,.55f}) LabVisuals.Shape("Shelf upright",PrimitiveType.Cube,transform,new Vector3(x,-.16f,.2f),new Vector3(.035f,1.3f,.035f),Metal,true);
             for(var tier=0;tier<tiers.Length;tier++)
             {
-                var y=onTable?floor+TableHeight:-.02f+tier*.34f; var z=onTable?(tier-(tiers.Length-1)*.5f)*.27f:tier*.12f;
+                var y=onTable?floor+TableHeight:-.02f+tier*.34f; var z=onTable?(tier-(tiers.Length-1)*.5f)*.4f:tier*.12f;
                 if(!onTable) LabVisuals.Shape("Shelf board",PrimitiveType.Cube,transform,new Vector3(0,y,z),new Vector3(1.05f,.025f,.3f),Board,true);
                 for(var column=0;column<tiers[tier].Length;column++)
                 {
                     var element=tiers[tier][column]; if(element==null) continue;
                     var beaker=new GameObject("Beaker "+element.symbol).transform; beaker.SetParent(transform,false);
-                    beaker.localPosition=new Vector3((column-1)*(onTable?.29f:.32f),y+(onTable?.002f:.0125f),z);
+                    beaker.localPosition=new Vector3((column-1)*(onTable?.39f:.33f),y+(onTable?.002f:.0125f),z);
                     if(beakerPrefab!=null) PlaceModel(beaker,beakerPrefab); else DrawGlass(beaker);
                     for(var i=0;i<AtomsPerBeaker;i++)
                     {
@@ -148,17 +149,20 @@ namespace MoleculeLab
             foreach(var collider in model.GetComponentsInChildren<Collider>(true)) Destroy(collider);
             var renderers=model.GetComponentsInChildren<Renderer>(); if(renderers.Length==0) return;
             var bounds=renderers[0].bounds; foreach(var r in renderers) bounds.Encapsulate(r.bounds);
-            var size=Mathf.Max(bounds.size.y,Mathf.Max(bounds.size.x,bounds.size.z));
-            if(size>1e-4f) model.transform.localScale*=BeakerHeight/size;
+            // Stretched to a bucket: BeakerRadius wide, BeakerHeight tall.
+            var width=Mathf.Max(bounds.size.x,bounds.size.z);
+            if(width>1e-4f && bounds.size.y>1e-4f)
+            {
+                var s=model.transform.localScale; var k=2*BeakerRadius/width/Mathf.Max(1e-4f,beaker.lossyScale.x);
+                model.transform.localScale=new Vector3(s.x*k,s.y*BeakerHeight/bounds.size.y/Mathf.Max(1e-4f,beaker.lossyScale.y),s.z*k);
+            }
             bounds=renderers[0].bounds; foreach(var r in renderers) bounds.Encapsulate(r.bounds);
             // Stand it on the shelf, centred under the atom spots whatever the model's pivot.
             model.transform.position+=new Vector3(beaker.position.x-bounds.center.x,beaker.position.y-bounds.min.y,beaker.position.z-bounds.center.z);
             foreach(var r in renderers) r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
             // A thin rim ring so the clear glass still reads as a beaker from across the room.
-            bounds=renderers[0].bounds; foreach(var r in renderers) bounds.Encapsulate(r.bounds);
-            var unit=Mathf.Max(1e-4f,beaker.lossyScale.x);
-            var radius=Mathf.Min(bounds.extents.x,bounds.extents.z)/unit*.92f;
-            Ring(beaker,"Rim",(bounds.max.y-beaker.position.y)/unit-.004f,radius,.0035f);
+            // (From the intended size: renderer bounds can still be stale right after rescaling.)
+            Ring(beaker,"Rim",BeakerHeight-.006f,BeakerRadius*.86f,.0035f);
         }
     }
 }

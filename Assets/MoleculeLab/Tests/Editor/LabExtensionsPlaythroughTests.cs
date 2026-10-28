@@ -45,7 +45,7 @@ namespace MoleculeLab.Tests
         {
             EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
             yield return new EnterPlayMode(); yield return null;
-            var lab=Object.FindAnyObjectByType<LabController>(); lab.seedTransferDuration=0; lab.freeRetrySeconds=600;
+            var lab=Object.FindAnyObjectByType<LabController>(); for(var startWait=UnityEditor.EditorApplication.timeSinceStartup+10;!lab.Ready && UnityEditor.EditorApplication.timeSinceStartup<startWait;) yield return null; lab.seedTransferDuration=0; lab.freeRetrySeconds=600;
             var fake=new FakeLookup(); lab.MoleculeLookup=fake;
             lab.UseGalleryFile(null); lab.ResetLab(); yield return null;
 
@@ -60,7 +60,7 @@ namespace MoleculeLab.Tests
             var reachable=GameObject.Find("Reachable atom shelf"); Assert.That(reachable==null || !reachable.activeInHierarchy,Is.True);
             var carbonInBeaker=Shelf("C"); var beaker=GameObject.Find("Beaker C").transform;
             Assert.That(Vector2.Distance(new Vector2(carbonInBeaker.transform.position.x,carbonInBeaker.transform.position.z),new Vector2(beaker.position.x,beaker.position.z)),Is.LessThan(BeakerShelf.BeakerRadius),"Atoms sit inside the glass.");
-            Assert.That(carbonInBeaker.transform.lossyScale.x,Is.LessThan(lab.elements.First(e=>e.symbol=="C").radius*2*.7f),"Atoms are smaller than before.");
+            Assert.That(carbonInBeaker.transform.lossyScale.x,Is.EqualTo(.066f).Within(.006f),"Carbon is about tennis-ball size.");
 
             // Solid room: walls and furniture block held atoms (velocity tracking needs enabled colliders).
             Assert.That(GameObject.Find("Rear wall").GetComponent<Collider>().enabled,Is.True);
@@ -162,7 +162,7 @@ namespace MoleculeLab.Tests
         {
             EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
             yield return new EnterPlayMode(); yield return null;
-            var lab=Object.FindAnyObjectByType<LabController>(); lab.UseGalleryFile(null);
+            var lab=Object.FindAnyObjectByType<LabController>(); for(var startWait=UnityEditor.EditorApplication.timeSinceStartup+10;!lab.Ready && UnityEditor.EditorApplication.timeSinceStartup<startWait;) yield return null; lab.UseGalleryFile(null);
             var button=lab.ResetControl; Assert.That(button,Is.Not.Null);
             // Only a fingertip pressing down onto the cap counts; hovering above or beside it does not.
             Assert.That(button.PushDepth(button.CapTop+Vector3.up*.03f),Is.Zero);
@@ -181,7 +181,7 @@ namespace MoleculeLab.Tests
         {
             EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
             yield return new EnterPlayMode(); yield return null;
-            var lab=Object.FindAnyObjectByType<LabController>(); lab.UseGalleryFile(null);
+            var lab=Object.FindAnyObjectByType<LabController>(); for(var startWait=UnityEditor.EditorApplication.timeSinceStartup+10;!lab.Ready && UnityEditor.EditorApplication.timeSinceStartup<startWait;) yield return null; lab.UseGalleryFile(null);
             var room=lab.Classroom; Assert.That(room,Is.Not.Null);
             Assert.That(room.Windows,Is.EqualTo(2)); Assert.That(room.Whiteboard,Is.Not.Null);
             Assert.That(GameObject.Find("Opaque daylight glazing"),Is.Null,"The old small window is replaced.");
@@ -223,7 +223,7 @@ namespace MoleculeLab.Tests
         {
             EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
             yield return new EnterPlayMode(); yield return null;
-            var lab=Object.FindAnyObjectByType<LabController>(); lab.seedTransferDuration=0;
+            var lab=Object.FindAnyObjectByType<LabController>(); for(var startWait=UnityEditor.EditorApplication.timeSinceStartup+10;!lab.Ready && UnityEditor.EditorApplication.timeSinceStartup<startWait;) yield return null; lab.seedTransferDuration=0;
             var info=new FakeInfo();
             lab.MoleculeLookup=new FakeLookup{Next=new MoleculeLookupResult{status=LookupStatus.Found,cid=962,title="Water",iupacName="oxidane",molecularFormula="H2O"}};
             lab.MoleculeInfoSource=info; lab.hologramLinger=.2f; lab.UseGalleryFile(null); lab.ResetLab(); yield return null;

@@ -52,7 +52,7 @@ namespace MoleculeLab
         /// <summary>Starts the idle timer: if the atom is still unused after LabController.idleAtomSeconds it despawns.</summary>
         public void MarkReleased() => ReleasedAt=Time.time;
         /// <summary>In a beaker atoms are small, like marbles; picked up they grow to their normal size.</summary>
-        public const float ShelfScale=.45f;
+        public const float ShelfScale=1f; // full tennis-ball size in the bucket too (carbon is 6.6 cm)
         Vector3 fullScale;
         void ShowShelfSize(bool onShelf)
         {

@@ -290,7 +290,7 @@ namespace MoleculeLab
                     var title=string.IsNullOrEmpty(result.title)?definition.displayName:result.title;
                     if(!discoveries.Contains(title)) discoveries.Add(title);
                     ConvertFreeStructure(definition);
-                    const string galleryNote=" Drop it in the GALLERY bin to keep it, or the TRASH bin to discard it.";
+                    const string galleryNote=" Drop it in the GALLERY hole on the bench to keep it, or the TRASH bin to discard it.";
                     var detail=catalogue!=null?"It matches the lab's "+catalogue.displayName+" recipe, so it works in reactions."
                         :usedConformer?"Now showing PubChem's 3D shape.":"PubChem has no 3D shape for it, so your geometry is kept.";
                     Notify("PubChem CID "+result.cid+": "+title+(string.IsNullOrEmpty(result.iupacName) || result.iupacName.Equals(title,StringComparison.OrdinalIgnoreCase)?"":" ("+result.iupacName+")")+", "+(result.molecularFormula??graph.Formula())+". "+detail+galleryNote,true);
@@ -309,7 +309,7 @@ namespace MoleculeLab
                     {
                         if(!discoveries.Contains(catalogue.displayName)) discoveries.Add(catalogue.displayName);
                         ConvertFreeStructure(catalogue);
-                        Notify("PubChem is unreachable, but this matches the lab's "+catalogue.displayName+" recipe. Drop it in the GALLERY bin to keep it.",true);
+                        Notify("PubChem is unreachable, but this matches the lab's "+catalogue.displayName+" recipe. Drop it in the GALLERY hole on the bench to keep it.",true);
                     }
                     else if(freeRetries<MaximumFreeRetries)
                     {

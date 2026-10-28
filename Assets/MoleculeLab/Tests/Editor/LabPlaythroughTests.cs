@@ -63,7 +63,7 @@ namespace MoleculeLab.Tests
         {
             EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
             yield return new EnterPlayMode(); yield return null;
-            var lab=Object.FindAnyObjectByType<LabController>(); lab.seedTransferDuration=0;
+            var lab=Object.FindAnyObjectByType<LabController>(); for(var startWait=UnityEditor.EditorApplication.timeSinceStartup+10;!lab.Ready && UnityEditor.EditorApplication.timeSinceStartup<startWait;) yield return null; lab.seedTransferDuration=0;
             // Must not write to the player's gallery file. The beakers are endless.
             lab.UseGalleryFile(null); lab.ResetLab(); yield return null;
             foreach(var graphic in GameObject.Find("Lab control panel").GetComponentsInChildren<UnityEngine.UI.Graphic>())
@@ -118,7 +118,7 @@ namespace MoleculeLab.Tests
             EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
             yield return new EnterPlayMode();
             yield return null;
-            var lab=Object.FindAnyObjectByType<LabController>(); Assert.That(lab,Is.Not.Null);
+            var lab=Object.FindAnyObjectByType<LabController>(); for(var startWait=UnityEditor.EditorApplication.timeSinceStartup+10;!lab.Ready && UnityEditor.EditorApplication.timeSinceStartup<startWait;) yield return null; Assert.That(lab,Is.Not.Null);
             lab.seedTransferDuration=0;
             lab.UseGalleryFile(null); lab.ResetLab(); yield return null;
             Assert.That(Camera.main,Is.Not.Null);

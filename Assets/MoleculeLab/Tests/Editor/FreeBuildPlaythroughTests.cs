@@ -55,7 +55,7 @@ namespace MoleculeLab.Tests
         {
             EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
             yield return new EnterPlayMode(); yield return null;
-            var lab=Object.FindAnyObjectByType<LabController>(); lab.seedTransferDuration=0; lab.freeRetrySeconds=600;
+            var lab=Object.FindAnyObjectByType<LabController>(); for(var startWait=UnityEditor.EditorApplication.timeSinceStartup+10;!lab.Ready && UnityEditor.EditorApplication.timeSinceStartup<startWait;) yield return null; lab.seedTransferDuration=0; lab.freeRetrySeconds=600;
             lab.UseGalleryFile(null); lab.ResetLab(); yield return null;
             var fake=new FakeLookup(); lab.MoleculeLookup=fake;
             lab.SetMode(LabMode.Free); Assert.That(lab.Mode,Is.EqualTo(LabMode.Free));
@@ -127,7 +127,7 @@ namespace MoleculeLab.Tests
         {
             EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
             yield return new EnterPlayMode(); yield return null;
-            var lab=Object.FindAnyObjectByType<LabController>(); lab.seedTransferDuration=0; lab.freeRetrySeconds=600;
+            var lab=Object.FindAnyObjectByType<LabController>(); for(var startWait=UnityEditor.EditorApplication.timeSinceStartup+10;!lab.Ready && UnityEditor.EditorApplication.timeSinceStartup<startWait;) yield return null; lab.seedTransferDuration=0; lab.freeRetrySeconds=600;
             var fake=new FakeLookup{Next=new MoleculeLookupResult{status=LookupStatus.NotFound,message="none"}};
             lab.MoleculeLookup=fake; lab.UseGalleryFile(null); lab.ResetLab(); yield return null;
             lab.SetMode(LabMode.Free); Drop(lab,"C"); Place(lab,"C",0);
@@ -171,7 +171,7 @@ namespace MoleculeLab.Tests
         {
             EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
             yield return new EnterPlayMode(); yield return null;
-            var lab=Object.FindAnyObjectByType<LabController>(); lab.seedTransferDuration=0; lab.freeRetrySeconds=600;
+            var lab=Object.FindAnyObjectByType<LabController>(); for(var startWait=UnityEditor.EditorApplication.timeSinceStartup+10;!lab.Ready && UnityEditor.EditorApplication.timeSinceStartup<startWait;) yield return null; lab.seedTransferDuration=0; lab.freeRetrySeconds=600;
             lab.UseGalleryFile(null); lab.ResetLab(); yield return null;
             var fake=new FakeLookup(); lab.MoleculeLookup=fake;
             lab.StartFreeStructure("C"); Assert.That(lab.Mode,Is.EqualTo(LabMode.Free));

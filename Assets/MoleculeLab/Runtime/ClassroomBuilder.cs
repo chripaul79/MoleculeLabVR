@@ -15,8 +15,11 @@ namespace MoleculeLab
     {
         // Room in environment space: x -3..3, z -1.65..3.35, 3 m high. Wall faces are 6 cm inside those lines.
         // Inner faces of the room. The sci-fi shell panels sit in front of the old walls, so these move inwards when it is built.
-        const float OldWallFace=2.94f, OldRearFace=3.29f, OldCeiling=2.99f, ShellDepth=.08f;
-        float WallFace=OldWallFace, RearFace=OldRearFace, CeilingUnderside=OldCeiling;
+        const float GalleryFace=2.94f, OldRearFace=3.29f, OldCeiling=2.99f, ShellDepth=.08f;
+        /// <summary>The classroom is this much wider on each side than the authored 6 m room (the gallery keeps its width).</summary>
+        public const float Widen=.5f;
+        float OldWallFace=GalleryFace;
+        float WallFace=GalleryFace, RearFace=OldRearFace, CeilingUnderside=OldCeiling;
         /// <summary>True when the walls, floor and ceiling come from the lab pack.</summary>
         public bool SciFiShell { get; private set; }
         static readonly Color WallPaint=new Color(.96f,.95f,.91f), CeilingPaint=new Color(.99f,.99f,.98f), AccentPaint=new Color(.62f,.8f,.84f),
@@ -43,6 +46,7 @@ namespace MoleculeLab
         void Build(Transform gallery)
         {
             var shell=environment.GetComponentsInChildren<Transform>(true);
+            if(kit!=null && kit.labWall!=null) WidenRoom(shell);
             Repaint(shell,gallery);
             HideOldDressing(shell,gallery);
             if(kit!=null && kit.labWall!=null) BuildShell(shell,gallery);
@@ -120,8 +124,8 @@ namespace MoleculeLab
             if(gallery!=null)
             {
                 var length=GalleryRoom.RoomStart-GalleryRoom.RoomEnd-.06f; var mid=(GalleryRoom.RoomStart+GalleryRoom.RoomEnd+.06f)*.5f;
-                Tiles(kit.labFloor,"Lab gallery floor",new Vector3(0,0,mid),new Vector2(OldWallFace*2,length),false);
-                Tiles(kit.labRoof,"Lab gallery ceiling",new Vector3(0,OldCeiling,mid),new Vector2(OldWallFace*2,length),true);
+                Tiles(kit.labFloor,"Lab gallery floor",new Vector3(0,0,mid),new Vector2(GalleryFace*2,length),false);
+                Tiles(kit.labRoof,"Lab gallery ceiling",new Vector3(0,OldCeiling,mid),new Vector2(GalleryFace*2,length),true);
             }
             foreach(var t in shell)
             {
@@ -194,6 +198,60 @@ namespace MoleculeLab
             }
         }
 
+        /// <summary>
+        /// Moves the side walls out by <see cref="Widen"/> (and stretches the rear wall, floor and ceiling to match), carrying
+        /// anything mounted on them. Short wall pieces close the gap beside the gallery opening.
+        /// </summary>
+        void WidenRoom(Transform[] shell)
+        {
+            var env=environment.transform; var stretch=(GalleryFace+.06f+Widen)/(GalleryFace+.06f);
+            var moved=new List<Transform>();
+            foreach(var t in shell)
+            {
+                if(t==null || t==env || t.IsChildOf(environment.workstation) || t.IsChildOf(transform) || t.GetComponentInParent<GalleryRoom>()!=null) continue;
+                switch(t.name)
+                {
+                    case "Left wall": case "Right wall":
+                        t.position+=env.TransformVector(new Vector3(Mathf.Sign(env.InverseTransformPoint(t.position).x)*Widen,0,0)); moved.Add(t); continue;
+                    case "Rear wall": case "Floor 6 x 5 metres": case "Ceiling":
+                        var s=t.localScale; s.x*=stretch; t.localScale=s; moved.Add(t); continue;
+                }
+                if(moved.Exists(m=>t.IsChildOf(m))) continue;
+                var renderers=t.GetComponentsInChildren<Renderer>(true); if(renderers.Length==0) continue;
+                var b=renderers[0].bounds; foreach(var r in renderers) b.Encapsulate(r.bounds);
+                var local=env.InverseTransformPoint(b.center);
+                // Thin things on a side wall (signs, the old windows) move out with it. Statically batched ones can't be
+                // moved visually once the scene runs, so those are simply hidden.
+                if(GalleryFace-Mathf.Abs(local.x)<.2f && b.size.x<.3f && local.z>GalleryRoom.RoomStart)
+                {
+                    if(renderers.Any(r=>r.isPartOfStaticBatch)) t.gameObject.SetActive(false);
+                    else t.position+=env.TransformVector(new Vector3(Mathf.Sign(local.x)*Widen,0,0));
+                    moved.Add(t);
+                }
+            }
+            // The old walls are statically batched: their colliders moved, but they would still be drawn where they were.
+            // Hide them and draw plain painted walls at the new size instead (the lab-pack panels go in front).
+            var wallPaint=Paint(WallPaint,.2f);
+            foreach(var t in moved)
+            {
+                if(t.name!="Left wall" && t.name!="Right wall" && t.name!="Rear wall") continue;
+                var r=t.GetComponent<Renderer>(); if(r==null) continue; r.enabled=false;
+                var copy=GameObject.CreatePrimitive(PrimitiveType.Cube); copy.name=t.name+" (wider room)"; Destroy(copy.GetComponent<Collider>());
+                copy.transform.SetParent(transform,false);
+                copy.transform.position=t.position; copy.transform.rotation=t.rotation; copy.transform.localScale=t.lossyScale;
+                copy.GetComponent<Renderer>().sharedMaterial=wallPaint;
+            }
+            OldWallFace=GalleryFace+Widen; WallFace=OldWallFace;
+            // Close the strip between the wider room and the gallery opening.
+            var paint=Paint(WallPaint,.2f);
+            foreach(var side in new[]{-1,1})
+            {
+                var piece=GameObject.CreatePrimitive(PrimitiveType.Cube); piece.name="Front wall extension";
+                piece.transform.SetParent(transform,false); piece.transform.localPosition=new Vector3(side*(GalleryFace+.06f+Widen*.5f),1.5f,GalleryRoom.RoomStart);
+                piece.transform.localScale=new Vector3(Widen+.12f,3f,.12f); piece.GetComponent<Renderer>().sharedMaterial=paint;
+            }
+        }
+
         // ---------- what the classroom replaces ----------
         void HideOldDressing(Transform[] shell,Transform gallery)
         {
@@ -206,6 +264,11 @@ namespace MoleculeLab
                 if(t==null || t.IsChildOf(environment.workstation)) continue;
                 var name=t.name;
                 if(always.Contains(name) || (furnished && (withFurniture.Contains(name) || name.StartsWith("Fixed Kenney")))) t.gameObject.SetActive(false);
+            }
+            foreach(var label in environment.GetComponentsInChildren<TMP_Text>(true))
+            {
+                var text=label.text??""; if(label.transform.IsChildOf(environment.workstation)) continue;
+                if(text.StartsWith("EYE PROTECTION") || text.StartsWith("SPECTROMETER") || (furnished && text.StartsWith("REAGENT ARCHIVE"))) label.gameObject.SetActive(false);
             }
             if(gallery!=null)
                 foreach(Transform t in gallery) if(t.name=="Floor joint" || t.name=="Gallery timber rail" || t.name=="Gallery light housing" || t.name=="Gallery light") t.gameObject.SetActive(false);
@@ -310,10 +373,21 @@ namespace MoleculeLab
             // Text reads from the front: its +z must point into the wall.
             text.transform.localRotation=Quaternion.Euler(0,180,0);
             text.rectTransform.sizeDelta=new Vector2(2.2f,1.1f); text.color=Ink; text.alignment=TextAlignmentOptions.TopLeft;
-            text.enableAutoSizing=true; text.fontSizeMin=.3f; text.fontSizeMax=1.1f;
+            text.enableAutoSizing=true; text.fontSizeMin=.3f; text.fontSizeMax=1.3f;
+            var handwriting=Handwriting(); if(handwriting!=null) text.font=handwriting;
             text.text="<size=150%><b>Today: build a molecule</b></size>\n\n"+
-                "1  Take atoms out of the beakers\n2  Snap them together on the bench\n3  Finished? <b>GALLERY</b> bin keeps it,\n    <b>TRASH</b> bin throws it away\n\n"+
+                "1  Take atoms out of the beakers\n2  Snap them together on the bench\n3  Finished? Drop it in the <b>GALLERY</b> hole to keep it,\n    or in the <b>TRASH</b> bin to throw it away\n\n"+
                 "<size=80%>Red button on the bench: reset the lab</size>";
+        }
+
+        static TMP_FontAsset handwritingFont;
+        /// <summary>Patrick Hand (SIL Open Font License, Resources/Fonts), turned into a dynamic TextMeshPro font the first time it is needed.</summary>
+        static TMP_FontAsset Handwriting()
+        {
+            if(handwritingFont!=null) return handwritingFont;
+            var font=Resources.Load<Font>("Fonts/PatrickHand-Regular"); if(font==null) return null;
+            handwritingFont=TMP_FontAsset.CreateFontAsset(font); if(handwritingFont!=null) handwritingFont.name="Patrick Hand (runtime)";
+            return handwritingFont;
         }
 
         // ---------- furniture from the lab pack ----------
@@ -346,8 +420,8 @@ namespace MoleculeLab
 
             Workbench();
 
-            // Two student desks under the windows.
-            foreach(var z in new[]{-.5f,1.55f})
+            // A student desk under the far window (the near one stood behind the beaker table).
+            foreach(var z in new[]{1.55f})
             {
                 var student=Place(kit.desk,"Student desk",new Vector3(WallFace,0,z),-90,Fit.Height,.76f,true,true);
                 Seat(student,"Student chair",90);
@@ -399,9 +473,9 @@ namespace MoleculeLab
         {
             if(!SciFiShell) return;
             const float start=GalleryRoom.RoomStart-.08f, end=GalleryRoom.RoomEnd+.06f;
-            TileWall("Gallery wall end",new Vector3(-OldWallFace,0,end),new Vector3(OldWallFace,0,end),0);
+            TileWall("Gallery wall end",new Vector3(-GalleryFace,0,end),new Vector3(GalleryFace,0,end),0);
             foreach(var side in new[]{-1,1})
-                TileWall(side<0?"Gallery wall left":"Gallery wall right",new Vector3(side*OldWallFace,0,start),new Vector3(side*OldWallFace,0,end+ShellDepth),side<0?90:-90);
+                TileWall(side<0?"Gallery wall left":"Gallery wall right",new Vector3(side*GalleryFace,0,start),new Vector3(side*GalleryFace,0,end+ShellDepth),side<0?90:-90);
             GallerySigns(gallery,end+ShellDepth);
         }
 

@@ -12,8 +12,8 @@ namespace MoleculeLab
         void BuildPhysicalControls()
         {
             ResetControl=ResetButton.Create(bench,this);
-            // Floor bins either side of the bench, at the player's end; they stay put when the bench is adjusted.
-            GalleryBin=MoleculeBin.Create(Environment.transform,this,true,new Vector3(-1.4f,0,.9f));
+            // Gallery: a hole in the back left of the workbench (moves with the bench). Trash: a floor bin to the right.
+            GalleryBin=MoleculeBin.CreateHole(bench,this,new Vector3(-.78f,0,.22f));
             TrashBin=MoleculeBin.Create(Environment.transform,this,false,new Vector3(1.4f,0,.9f));
         }
         /// <summary>Everything resets except the gallery, which is saved between sessions.</summary>
