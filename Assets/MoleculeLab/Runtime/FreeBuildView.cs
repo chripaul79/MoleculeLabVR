@@ -62,6 +62,9 @@ namespace MoleculeLab
         // A grab release is acted on in the next Update, outside the XR interaction event.
         bool releasePending; FreeGesture pendingGesture; int pendingAtom=-1, pendingPartner=-1;
         int centroidExclude=-1; // the atom just released: the next relaxation keeps the others where they are
+        /// <summary>Grabbing a bond (stick) carries the whole structure; grabbing an atom moves only that atom.</summary>
+        public XRGrabInteractable Carry { get; private set; }
+        float fallSpeed;
 
         public void Initialize(LabController owner)
         {
@@ -70,6 +73,22 @@ namespace MoleculeLab
             label=LabVisuals.Label(transform,"",Vector3.zero,.024f); label.gameObject.SetActive(false);
             statusLabel=LabVisuals.Label(transform,"",Vector3.up*.15f,.03f);
             statusLabel.rectTransform.sizeDelta=new Vector2(1.4f,.3f);
+            // The whole structure: picked up by its bonds, then put down again it falls back onto the bench.
+            var body=gameObject.AddComponent<Rigidbody>(); body.isKinematic=true; body.useGravity=false; body.interpolation=RigidbodyInterpolation.None;
+            Carry=gameObject.AddComponent<XRGrabInteractable>();
+            Carry.throwOnDetach=false; Carry.movementType=XRBaseInteractable.MovementType.Instantaneous; Carry.useDynamicAttach=true;
+            Carry.colliders.Clear();
+            Carry.firstSelectEntered.AddListener(_=>{ fallSpeed=0; ClearPreview(); });
+        }
+        /// <summary>The bond sticks are the structure's handle; they change whenever bonds do.</summary>
+        void UpdateCarryColliders()
+        {
+            if(Carry==null) return;
+            var held=Carry.isSelected;
+            if(!held) Carry.enabled=false;
+            Carry.colliders.Clear();
+            foreach(var set in bondShapes) foreach(var shape in set) { var c=shape!=null?shape.GetComponent<Collider>():null; if(c!=null) Carry.colliders.Add(c); }
+            if(!held) Carry.enabled=Carry.colliders.Count>0; // re-registers the colliders with the interaction manager
         }
         LineRenderer Line(string name,int points,float width)
         {
@@ -173,6 +192,7 @@ namespace MoleculeLab
         }
         public void CancelGrabs()
         {
+            if(Carry!=null && Carry.interactionManager!=null) foreach(var interactor in Carry.interactorsSelecting.ToArray()) Carry.interactionManager.SelectCancel(interactor,Carry);
             foreach(var grab in grabs)
             {
                 if(grab==null || grab.interactionManager==null) continue;
@@ -315,9 +335,16 @@ namespace MoleculeLab
             for(var i=0;i<Structure.Graph.Bonds.Count;i++)
             {
                 var color=i==SelectedBond?SelectedColor:BondColor;
-                bondShapes.Add(Enumerable.Range(0,Structure.Graph.Bonds[i].Order)
-                    .Select(_=>LabVisuals.Shape("Free bond",PrimitiveType.Cylinder,transform,Vector3.zero,Vector3.one,color,false).transform).ToArray());
+                bondShapes.Add(Enumerable.Range(0,Structure.Graph.Bonds[i].Order).Select(_=>
+                {
+                    var stick=LabVisuals.Shape("Free bond",PrimitiveType.Cylinder,transform,Vector3.zero,Vector3.one,color,true);
+                    // A slightly fatter grab target than the visible stick; atoms stay the nearer target where they are.
+                    var capsule=stick.GetComponent<CapsuleCollider>(); if(capsule!=null) capsule.radius=1.2f;
+                    foreach(var atom in atomShapes) { var c=atom!=null?atom.GetComponent<Collider>():null; if(c!=null) Physics.IgnoreCollision(c,stick.GetComponent<Collider>()); }
+                    return stick.transform;
+                }).ToArray());
             }
+            UpdateCarryColliders();
         }
         void Update()
         {
@@ -345,25 +372,43 @@ namespace MoleculeLab
                 if(i==dragging) continue;
                 shown[i]=Vector3.Lerp(shown[i],Structure.Position(i),blend); atomShapes[i].localPosition=shown[i];
             }
-            KeepAboveBench();
+            Settle();
             UpdateBonds();
             var top=shown.Count==0?0:shown.Max(p=>p.y);
             statusLabel.transform.localPosition=new Vector3(Structure.Count==0?0:shown.Average(p=>p.x),top+.13f,Structure.Count==0?0:shown.Average(p=>p.z));
             var showGuides=lab.Mode==LabMode.Free && !Locked && dragging<0;
             for(var k=0;k<guides.Count;k++) if(guides[k].gameObject.activeSelf!=(showGuides && k<guideSites.Count)) guides[k].gameObject.SetActive(showGuides && k<guideSites.Count);
         }
-        /// <summary>The structure starts just above the bench; when atoms would sink into it, lift the whole structure.</summary>
-        void KeepAboveBench()
+        /// <summary>
+        /// Gravity for the structure: unless it (or one of its atoms) is held, it falls until its lowest atom rests on the bench
+        /// or whatever is under it. An atom added below the surface lifts the structure out again.
+        /// </summary>
+        void Settle()
         {
-            var lowest=float.MaxValue;
-            for(var i=0;i<atomShapes.Count;i++)
+            if(Carry!=null && Carry.isSelected || dragging>=0 || atomShapes.Count==0) { fallSpeed=0; return; }
+            var gap=float.MaxValue;
+            for(var i=0;i<atomShapes.Count;i++) gap=Mathf.Min(gap,SupportGap(transform.TransformPoint(shown[i]),atomShapes[i].lossyScale.y*.5f));
+            if(gap<-.0005f) { transform.position+=Vector3.up*(-gap*(1-Mathf.Exp(-Time.deltaTime*12))); fallSpeed=0; return; }
+            if(gap<=.0005f) { fallSpeed=0; return; }
+            fallSpeed=Mathf.Min(fallSpeed+9.81f*Time.deltaTime,5f);
+            transform.position+=Vector3.down*Mathf.Min(gap,fallSpeed*Time.deltaTime);
+            if(transform.position.y<.3f) { transform.position=lab.FreeBuildPosition; fallSpeed=0; lab.Notify("The structure fell off and was put back on the bench."); }
+        }
+        static readonly RaycastHit[] supportHits=new RaycastHit[24];
+        /// <summary>Distance an atom can fall before it touches something solid (negative: it is already sunk in).</summary>
+        float SupportGap(Vector3 centre,float radius)
+        {
+            const float above=.3f, reach=3f;
+            var count=Physics.SphereCastNonAlloc(centre+Vector3.up*above,radius*.97f,Vector3.down,supportHits,above+reach,~0,QueryTriggerInteraction.Ignore);
+            var best=above+reach;
+            for(var k=0;k<count;k++)
             {
-                if(i==dragging) continue;
-                var bottom=transform.TransformPoint(Structure.Position(i)).y-atomShapes[i].lossyScale.y*.5f;
-                if(bottom<lowest) lowest=bottom;
+                var hit=supportHits[k]; if(hit.collider==null || hit.distance<=0) continue;
+                var t=hit.collider.transform;
+                if(t.IsChildOf(transform) || t.GetComponentInParent<FreeAtomHandle>()!=null || t.GetComponentInParent<LooseAtom>()!=null) continue;
+                if(hit.distance<best) best=hit.distance;
             }
-            var lift=lab.BenchTop+.03f-lowest;
-            if(lowest<float.MaxValue && lift>.0005f) transform.position+=Vector3.up*(lift*(1-Mathf.Exp(-Time.deltaTime*10)));
+            return best-above;
         }
         void LateUpdate()
         {

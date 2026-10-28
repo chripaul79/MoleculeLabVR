@@ -78,7 +78,7 @@ namespace MoleculeLab
             Sockets=sockets.ToArray(); SocketSymbols=symbols.ToArray();
         }
         /// <summary>An asset-pack model stretched to <paramref name="size"/>, standing on <paramref name="bottomCentre"/>, front towards the player (-z), with a solid box.</summary>
-        static Transform FitModel(GameObject prefab,Transform parent,string name,Vector3 bottomCentre,Vector3 size)
+        public static Transform FitModel(GameObject prefab,Transform parent,string name,Vector3 bottomCentre,Vector3 size)
         {
             var holder=new GameObject(name).transform; holder.SetParent(parent,false); holder.localPosition=bottomCentre;
             var model=Instantiate(prefab,holder,false); model.name=prefab.name; model.transform.localRotation=Quaternion.Euler(0,180,0);
@@ -101,10 +101,22 @@ namespace MoleculeLab
             var scale=new Vector3(size.x/bounds.size.x,size.y/bounds.size.y,size.z/bounds.size.z);
             scaler.localScale=scale; scaler.localPosition=new Vector3(-bounds.center.x*scale.x,-bounds.min.y*scale.y,-bounds.center.z*scale.z);
             var box=holder.gameObject.AddComponent<BoxCollider>(); box.center=new Vector3(0,size.y*.5f,0); box.size=size;
+            SolidCore(holder,new Vector3(0,0,0),size);
             // The table is seen from all sides: draw back faces too (the pack's drawer units are open at the back).
             foreach(var r in model.GetComponentsInChildren<Renderer>(true))
                 foreach(var m in r.materials) if(m.renderQueue<2500 && m.HasProperty("_Cull")) { m.SetFloat("_Cull",0); m.doubleSidedGI=true; }
             return holder;
+        }
+        /// <summary>
+        /// The pack's drawer cupboards are open at the back and have gaps between the drawer fronts. A solid body just inside
+        /// the model hides both (its top stays below the worktop so the surface is unchanged).
+        /// </summary>
+        public static void SolidCore(Transform holder,Vector3 bottomCentre,Vector3 size)
+        {
+            var core=GameObject.CreatePrimitive(PrimitiveType.Cube); core.name="Cupboard body"; Destroy(core.GetComponent<Collider>());
+            core.transform.SetParent(holder,false); core.transform.localPosition=bottomCentre+new Vector3(0,size.y*.47f,0);
+            core.transform.localScale=new Vector3(size.x*.965f,size.y*.94f,size.z*.94f);
+            core.GetComponent<Renderer>().sharedMaterial=LabVisuals.Material(new Color(.86f,.84f,.79f));
         }
         /// <summary>See-through glass: an unlit transparent canvas material (always present in builds that use UI) on a cylinder.</summary>
         static void DrawGlass(Transform beaker)

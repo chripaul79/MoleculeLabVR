@@ -40,7 +40,7 @@ namespace MoleculeLab.Tests
         }
 
         /// <summary>
-        /// Points each of the rig's real Near-Far interactors (both controllers and both hands) at the FREE BUILD tab and
+        /// Points each of the rig's real Near-Far interactors (both controllers and both hands) at the INSPECT tab and
         /// presses it through the real XR UI module. Every one of them must switch the tab.
         /// </summary>
         [UnityTest]
@@ -54,7 +54,7 @@ namespace MoleculeLab.Tests
             foreach(var b in Object.FindObjectsByType<Behaviour>(FindObjectsInactive.Include))
                 if(b!=null && (b.GetType().Name=="XRInputModalityManager" || b.GetType().Name=="TrackedPoseDriver" || b.GetType().Name=="XRTransformStabilizer" || b is HandMenuRay)) b.enabled=false;
             var panel=GameObject.Find("Lab control panel");
-            var label=panel.GetComponentsInChildren<TMPro.TMP_Text>(true).First(t=>t.text.Trim()=="FREE BUILD");
+            var label=panel.GetComponentsInChildren<TMPro.TMP_Text>(true).First(t=>t.text.Trim()=="INSPECT");
             var tab=label.GetComponentInParent<Button>(); Assert.That(tab,Is.Not.Null);
             var report=new System.Text.StringBuilder(); var failures=0;
             var interactors=Object.FindObjectsByType<NearFarInteractor>(FindObjectsInactive.Include).ToArray();
@@ -93,7 +93,7 @@ namespace MoleculeLab.Tests
                 strength=1; state.Step(1,1,null,null,tab.gameObject); yield return null; yield return null;
                 strength=0; state.Step(0,2,null,null,tab.gameObject); yield return null; yield return null;
                 var origin=ray.farInteractionCaster is InteractionCasterBase c2 && c2.effectiveCastOrigin!=null?c2.effectiveCastOrigin:ray.transform;
-                var ok=lab.Mode==LabMode.Free; if(!ok) failures++;
+                var ok=lab.Mode==LabMode.Inspect; if(!ok) failures++;
                 report.Append("   ray from ").Append(origin.name).Append(' ').Append(origin.position).Append(" towards ").Append(origin.forward).Append(" tab at ").Append(tab.transform.position).Append('\n');
                 report.Append(ok?"OK   ":"FAIL ").Append(path).Append(" | was active=").Append(wasActive).Append(" enabled=").Append(wasEnabled).Append(" ui=").Append(wasUI)
                       .Append(" | ui hit=").Append(hit).Append(" | layers=").Append(ray.interactionLayers.value).Append('\n');

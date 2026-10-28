@@ -28,10 +28,10 @@ namespace MoleculeLab
         /// <summary>Cap top when not pressed, in world space.</summary>
         public Vector3 CapTop => transform.TransformPoint(new Vector3(0,.06f,0));
 
-        public static ResetButton Create(Transform bench,LabController lab)
+        public static ResetButton Create(Transform bench,LabController lab,Vector3 localPosition)
         {
             var go=new GameObject("Reset button (runtime)"); go.transform.SetParent(bench,false);
-            go.transform.localPosition=new Vector3(-.85f,.04f,-.3f);
+            go.transform.localPosition=localPosition;
             var button=go.AddComponent<ResetButton>(); button.lab=lab; button.Build(); return button;
         }
         void Build()

@@ -51,8 +51,10 @@ namespace MoleculeLab
             HideOldDressing(shell,gallery);
             if(kit!=null && kit.labWall!=null) BuildShell(shell,gallery);
             Lighting();
-            for(var i=0;i<2;i++) Window(new Vector3(WallFace,1.72f,i==0?-.5f:1.55f),1.75f,1.45f);
+            // Right wall: the reactions corner at the front, two windows further back.
+            foreach(var z in new[]{1.0f,2.45f}) Window(new Vector3(WallFace,1.72f,z),1.25f,1.45f);
             BuildWhiteboard();
+            ReactionsBoard();
             if(kit!=null) { Furniture(); if(gallery!=null) GalleryWing(gallery); }
             PeriodicTable(shell);
         }
@@ -381,6 +383,44 @@ namespace MoleculeLab
                 "<size=80%>Red button on the bench: reset the lab</size>";
         }
 
+        /// <summary>Inner face of the side walls (after widening and panels); the reaction table stands against the right one.</summary>
+        public float SideWall => WallFace;
+        public Transform ReactionsWhiteboard { get; private set; }
+        /// <summary>A whiteboard above the reaction table explaining the vessel and the three tools.</summary>
+        void ReactionsBoard()
+        {
+            var board=new GameObject("Reactions whiteboard").transform; board.SetParent(transform,false);
+            board.localPosition=new Vector3(WallFace,1.78f,ReactionCornerZ+.1f); board.localRotation=Quaternion.Euler(0,-90,0); // front faces -x, into the room
+            ReactionsWhiteboard=board;
+            void Part(string n,Vector3 p,Vector3 s,Color c)
+            {
+                var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=n; Destroy(go.GetComponent<Collider>());
+                go.transform.SetParent(board,false); go.transform.localPosition=p; go.transform.localScale=s; go.GetComponent<Renderer>().sharedMaterial=Paint(c,.7f);
+            }
+            const float w=1.35f, h=1.0f; // fits between the front wall and the atom cupboards
+            Part("Board",new Vector3(0,0,.015f),new Vector3(w,h,.02f),BoardSurface);
+            Part("Frame top",new Vector3(0,h*.5f+.02f,.018f),new Vector3(w+.08f,.04f,.036f),BoardFrame);
+            Part("Frame bottom",new Vector3(0,-h*.5f-.02f,.018f),new Vector3(w+.08f,.04f,.036f),BoardFrame);
+            Part("Frame left",new Vector3(-w*.5f-.02f,0,.018f),new Vector3(.04f,h,.036f),BoardFrame);
+            Part("Frame right",new Vector3(w*.5f+.02f,0,.018f),new Vector3(.04f,h,.036f),BoardFrame);
+            var text=LabVisuals.Label(board,"",new Vector3(0,0,.045f),.05f); // in front of the frame, which used to hide the first letters
+            var face=text.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
+            text.transform.localRotation=Quaternion.Euler(0,180,0);
+            text.rectTransform.pivot=new Vector2(.5f,.5f); text.rectTransform.sizeDelta=new Vector2(w-.18f,h-.12f); text.margin=Vector4.zero; text.color=Ink; text.alignment=TextAlignmentOptions.TopLeft;
+            text.enableAutoSizing=true; text.fontSizeMin=.25f; text.fontSizeMax=1.2f;
+            var handwriting=Handwriting(); if(handwriting!=null) text.font=handwriting;
+            text.text="<size=135%><b>How reactions work</b></size>\n"+
+                "1  Build molecules - or bring one from the gallery\n"+
+                "2  Drop them in the glass <b>vessel</b> below.\n    Its label says what each tool would do.\n"+
+                "3  Hold a <b>tool</b> over the vessel:\n"+
+                "    <color=#C8501E><b>FLAME</b></color>  burns fuels with O2;  H2 + Cl2\n"+
+                "    <color=#555A66><b>Pd CATALYST</b></color>  adds H2 to double and triple C-C bonds\n"+
+                "    <color=#9A8A10><b>ACID</b></color>  water + C=C;  acid + alcohol = ester\n"+
+                "    <color=#7A4A20><b>no tool</b></color>  Br2 or Cl2 adds to C=C at once\n"+
+                "<size=85%>Atoms are never lost - they only change partners.</size>";
+        }
+        public const float ReactionCornerZ=-.95f; // front-right corner, clear of the atom cupboards
+
         static TMP_FontAsset handwritingFont;
         /// <summary>Patrick Hand (SIL Open Font License, Resources/Fonts), turned into a dynamic TextMeshPro font the first time it is needed.</summary>
         static TMP_FontAsset Handwriting()
@@ -546,9 +586,10 @@ namespace MoleculeLab
             var bench=environment.bench; if(bench==null || kit.desk==null) return;
             var parts=bench.GetComponentsInChildren<Renderer>(true).Where(r=>r.name=="Workbench" || r.name=="Worktable timber edge" || r.name=="Table support").ToArray();
             var top=parts.FirstOrDefault(r=>r.name=="Workbench"); if(top==null) return;
+            // The renderer is statically batched, so its bounds still show the authored 2.05 m; the bench is now LabController.BenchWidth wide.
             var b=top.bounds; var height=b.max.y-environment.transform.position.y;
-            var centre=environment.transform.InverseTransformPoint(new Vector3(b.center.x,environment.transform.position.y,b.center.z));
-            var table=Place(kit.desk,"Lab workbench",centre,180,Fit.Stretch,0,false,false,new Vector3(b.size.x,height,b.size.z+.04f));
+            var centre=environment.transform.InverseTransformPoint(new Vector3(bench.position.x,environment.transform.position.y,b.center.z));
+            var table=Place(kit.desk,"Lab workbench",centre,180,Fit.Stretch,0,false,false,new Vector3(LabController.BenchWidth,height,b.size.z+.04f));
             if(table==null) return;
             foreach(var r in parts) r.enabled=false;
             table.SetParent(bench,true);
@@ -644,6 +685,7 @@ namespace MoleculeLab
                 var box=holder.gameObject.AddComponent<BoxCollider>();
                 box.center=new Vector3(0,size.y*.5f,backToWall?size.z*.5f:0); box.size=size;
             }
+            if(kit!=null && prefab==kit.desk) BeakerShelf.SolidCore(holder,new Vector3(0,0,backToWall?size.z*.5f:0),size);
             // Opaque furniture is drawn from both sides: some pack models have no back faces (open-backed drawers).
             foreach(var r in model.GetComponentsInChildren<Renderer>(true))
                 foreach(var m in r.materials) if(m.renderQueue<2500 && m.HasProperty("_Cull")) { m.SetFloat("_Cull",0); m.doubleSidedGI=true; }

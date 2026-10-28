@@ -51,7 +51,12 @@ namespace MoleculeLab
             if(exhibitInfo.TryGetValue(id,out var known)) { hologram.SetInfo(id,known.info,known.iupac); return; }
             if(exhibitInfoLoading.Add(id)) StartCoroutine(LoadExhibitInfo(exhibit.Entry));
         }
-        public void ExhibitReleased(GalleryExhibit exhibit) { if(hologram!=null) hologram.HideLater(exhibit,hologramLinger); }
+        /// <summary>Let go of an exhibit: its hologram fades; let go over the reaction vessel, a copy of it goes in.</summary>
+        public void ExhibitReleased(GalleryExhibit exhibit)
+        {
+            if(hologram!=null) hologram.HideLater(exhibit,hologramLinger);
+            if(exhibit!=null && OverVessel(exhibit.transform.position)) CopyExhibitIntoVessel(exhibit.Entry);
+        }
         IEnumerator LoadExhibitInfo(GalleryEntry entry)
         {
             EnsureMoleculeLookup();

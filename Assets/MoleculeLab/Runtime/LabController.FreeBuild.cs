@@ -31,7 +31,34 @@ namespace MoleculeLab
         LineRenderer dropZone;
         TextMeshPro dropLabel;
         const int MaximumFreeRetries=3;
-        const string FreeInstructions="FREE BUILD\nTake an atom from a beaker and drop it on the ring. Release more atoms on the dots to bond them. Push two atoms together for a double bond or a ring; pull an end atom off to remove it.";
+        /// <summary>Extra goals without a recipe (no guide spots): name, formula as written, Hill formula as the structure reports it.</summary>
+        static readonly (string name,string formula,string hill)[] FreeGoals=
+        {
+            ("Ammonia","NH3","H3N"),("Hydrogen peroxide","H2O2","H2O2"),("Formaldehyde","CH2O","CH2O"),("Hydrogen cyanide","HCN","CHN"),
+            ("Methylamine","CH3NH2","CH5N"),("Methanethiol","CH3SH","CH4S"),("Chloromethane","CH3Cl","CH3Cl"),("Acetic acid","CH3COOH","C2H4O2"),
+            ("Ethyl acetate","CH3COOC2H5","C4H8O2"),("Phosphine","PH3","H3P"),("Hydrogen fluoride","HF","FH"),("Propane","C3H8","C3H8"),
+        };
+        /// <summary>A BUILD goal: a recipe (guide spots available) or a formula to reach freely.</summary>
+        public sealed class BuildGoal { public string Name, Formula, Hill; public MoleculeDefinition Recipe; }
+        BuildGoal[] goals;
+        /// <summary>The goal list: every recipe, then the extra formula-only goals.</summary>
+        public IReadOnlyList<BuildGoal> Goals
+        {
+            get
+            {
+                if(goals!=null) return goals;
+                var recipes=molecules.Where(m=>m!=null).Select(m=>new BuildGoal{Name=m.displayName,Formula=m.formula,Hill=MolGraph.From(m).Formula(),Recipe=m}).ToList();
+                goals=recipes.Concat(FreeGoals.Where(g=>recipes.All(r=>r.Hill!=g.hill)).Select(g=>new BuildGoal{Name=g.name,Formula=g.formula,Hill=g.hill})).ToArray();
+                return goals;
+            }
+        }
+        /// <summary>Hint level for goals: true shows guide spots for every atom (recipes); false shows only the formula.</summary>
+        public bool GuidedGoals { get; private set; } = true;
+        public string FreeGoal { get; private set; }
+        string freeGoalFormula; MoleculeDefinition freeGoalRecipe; int goalPage;
+        string goalNote="";
+        string TakeGoalNote() { var note=goalNote; goalNote=""; return note; }
+        const string FreeInstructions="BUILDING FREELY\nTake an atom from a beaker and drop it on the ring. Release more atoms on the dots to bond them. Push two atoms together for a double bond or a ring; pull an end atom off to remove it.";
 
         /// <summary>Abandons a running PubChem check (its answer is ignored) and unlocks the structure.</summary>
         void CancelFreeCheck()
@@ -285,7 +312,7 @@ namespace MoleculeLab
                             Notify("PubChem knows this as "+result.title+", but the lab could not build its model: "+error);
                             break;
                         }
-                        ownedResources.Add(definition);
+                        ownedResources.Add(definition); madeDefinitions.Add(definition); // reactions reuse its PubChem name
                     }
                     var title=string.IsNullOrEmpty(result.title)?definition.displayName:result.title;
                     if(!discoveries.Contains(title)) discoveries.Add(title);
@@ -293,7 +320,7 @@ namespace MoleculeLab
                     const string galleryNote=" Drop it in the GALLERY hole on the bench to keep it, or the TRASH bin to discard it.";
                     var detail=catalogue!=null?"It matches the lab's "+catalogue.displayName+" recipe, so it works in reactions."
                         :usedConformer?"Now showing PubChem's 3D shape.":"PubChem has no 3D shape for it, so your geometry is kept.";
-                    Notify("PubChem CID "+result.cid+": "+title+(string.IsNullOrEmpty(result.iupacName) || result.iupacName.Equals(title,StringComparison.OrdinalIgnoreCase)?"":" ("+result.iupacName+")")+", "+(result.molecularFormula??graph.Formula())+". "+detail+galleryNote,true);
+                    Notify(TakeGoalNote()+"PubChem CID "+result.cid+": "+title+(string.IsNullOrEmpty(result.iupacName) || result.iupacName.Equals(title,StringComparison.OrdinalIgnoreCase)?"":" ("+result.iupacName+")")+", "+(result.molecularFormula??graph.Formula())+". "+detail+galleryNote,true);
                     break;
                 }
                 case LookupStatus.NotFound:
@@ -309,7 +336,7 @@ namespace MoleculeLab
                     {
                         if(!discoveries.Contains(catalogue.displayName)) discoveries.Add(catalogue.displayName);
                         ConvertFreeStructure(catalogue);
-                        Notify("PubChem is unreachable, but this matches the lab's "+catalogue.displayName+" recipe. Drop it in the GALLERY hole on the bench to keep it.",true);
+                        Notify(TakeGoalNote()+"PubChem is unreachable, but this matches the lab's "+catalogue.displayName+" recipe. Drop it in the GALLERY hole on the bench to keep it.",true);
                     }
                     else if(freeRetries<MaximumFreeRetries)
                     {
@@ -337,6 +364,11 @@ namespace MoleculeLab
         MoleculeView ConvertFreeStructure(MoleculeDefinition definition)
         {
             var source=freeView; var position=source.transform.position;
+            var built=source.Structure.Graph;
+            var rightFormula=FreeGoal!=null && built.Formula()==freeGoalFormula;
+            // A recipe goal also needs the right bonding: ethanol and dimethyl ether share C2H6O.
+            var reachedGoal=rightFormula && (freeGoalRecipe==null || StructureMatcher.Match(built,MolGraph.From(freeGoalRecipe))!=null);
+            var isomer=rightFormula && !reachedGoal;
             var molecule=Spawn(new MoleculeState(definition,true),position);
             var tokens=source.Structure.TokenIds.ToList();
             for(var i=0;i<definition.atoms.Length;i++)
@@ -351,13 +383,16 @@ namespace MoleculeLab
             var extent=definition.atoms.Max(a=>a.position.magnitude+a.element.radius*LabVisuals.AtomScale);
             if(extent>.35f) molecule.transform.localScale=Vector3.one*MoleculeScaleTransformer.ClampScale(.35f/extent);
             Select(molecule); audioSource.PlayOneShot(completeTone); Achieve("build"); Completed?.Invoke(molecule); UpdateTray();
+            // Said at the start of the identification message that follows.
+            if(reachedGoal) { goalNote="Goal reached: "+FreeGoal+"! "; FreeGoal=null; freeGoalRecipe=null; RebuildMenu(); }
+            else if(isomer) goalNote="Right formula, but not "+FreeGoal+": this is an isomer (same atoms, different bonding). ";
             return molecule;
         }
 
         /// <summary>The teal ring that shows where to drop the first atom.</summary>
         void UpdateFreeDropZone()
         {
-            var show=Mode==LabMode.Free && freeView==null && !reacting && bench!=null;
+            var show=(Mode==LabMode.Free || Mode==LabMode.Build && !views.Any(v=>v!=null && !v.State.Complete)) && freeView==null && !reacting && bench!=null;
             if(dropZone==null)
             {
                 if(!show) return;
@@ -369,7 +404,7 @@ namespace MoleculeLab
             }
             if(dropZone.gameObject.activeSelf!=show) dropZone.gameObject.SetActive(show);
             if(!show) return;
-            dropZone.transform.position=FreeBuildPosition;
+            dropZone.transform.position=new Vector3(FreeBuildPosition.x,BenchTop+.004f,FreeBuildPosition.z); // drawn on the tabletop
             var ready=loose.Any(a=>a!=null && a.Grab!=null && a.Grab.isSelected && Vector3.Distance(a.transform.position,FreeBuildPosition)<=freeSeedDistance);
             dropZone.widthMultiplier=ready?.008f:.004f+(ReducedEffects?0:.0015f*Mathf.Sin(Time.time*3));
             dropLabel.text=ready?"Release to start building":"Drop any atom here\nto start building";
@@ -381,7 +416,7 @@ namespace MoleculeLab
                 return "No structure yet.\nTake any atom from a beaker and drop it on the teal ring.";
             var s=freeView.Structure; var open=s.TotalOpenValence;
             var state=freeView.StatusText; var newline=state.IndexOf('\n');
-            return s.Graph.Formula()+"   "+s.Count+" atoms   "+(open==0?"complete":open+" open bond"+(open==1?"":"s"))+
+            return (FreeGoal!=null?"Goal: "+FreeGoal+" "+freeGoalFormula+"\n":"")+s.Graph.Formula()+"   "+s.Count+" atoms   "+(open==0?"complete":open+" open bond"+(open==1?"":"s"))+
                 "\nSelected bond: "+freeView.BondText()+"\n"+(newline>=0?state.Substring(0,newline):state);
         }
         string FreeDiscoveryText()
@@ -389,15 +424,51 @@ namespace MoleculeLab
             if(discoveries.Count==0) return "PubChem discoveries: none yet.\nNeeds Wi-Fi; answers are cached on the headset.";
             return "PubChem discoveries: "+discoveries.Count+"\n"+string.Join(", ",discoveries.Skip(Mathf.Max(0,discoveries.Count-3)));
         }
-        void BuildFreePage(Transform page)
+        /// <summary>
+        /// The one BUILD page. Top row: how much help a goal gives (guide spots / formula only) or no goal at all.
+        /// Below: the goals. With guide spots a recipe starts with its seed and teal sites; otherwise the player builds
+        /// freely on the teal ring and the structure is checked against the goal when it is complete.
+        /// </summary>
+        void BuildPage(Transform page)
         {
-            // Big, readable steps where the recipe list sits in BUILD; the same shortcut row as BUILD underneath.
-            var steps=Text(page,"<b>FREE BUILD</b>\n\n1  Take any atom from a beaker\n2  Drop it on the teal ring\n3  Hold more atoms on the dots and let go\n4  Push two atoms together: double bond or ring\n5  Pull an end atom away to remove it",
-                new Vector2(-450,120),new Vector2(800,520),32,Color.white);
-            steps.alignment=TMPro.TextAlignmentOptions.TopLeft;
-            lesson.text=hints?"Every finished structure is checked in PubChem automatically and gets its real name.":"Hints hidden. Placement feedback stays enabled.";
-            energyText.text="";
+            Button(page,(GuidedGoals?"> ":"")+"Guide spots",new Vector2(-707,320),new Vector2(245,80),()=>SetGuidedGoals(true),26);
+            Button(page,(!GuidedGoals?"> ":"")+"Formula only",new Vector2(-450,320),new Vector2(245,80),()=>SetGuidedGoals(false),26);
+            Button(page,(Mode==LabMode.Free && FreeGoal==null?"> ":"")+"No goal",new Vector2(-193,320),new Vector2(245,80),BuildAnything,26);
+            var list=Goals; var pages=(list.Count+3)/4; goalPage=Mathf.Clamp(goalPage,0,pages-1);
+            for(var i=0;i<4;i++)
+            {
+                var index=goalPage*4+i; if(index>=list.Count) break; var goal=list[index];
+                var current=Mode==LabMode.Free?FreeGoal==goal.Name:Selected!=null && !Selected.State.Complete && Selected.Definition==goal.Recipe;
+                var note=GuidedGoals && goal.Recipe==null?"  (formula only)":"";
+                Button(page,(current?"> ":"")+goal.Name+"  "+goal.Formula+note,new Vector2(-450,210-i*105),new Vector2(760,80),()=>ChooseGoal(goal));
+            }
+            Button(page,"< Previous",new Vector2(-650,-210),new Vector2(350,80),()=>{goalPage=Mathf.Max(0,goalPage-1);RebuildMenu();});
+            Button(page,"Next >",new Vector2(-250,-210),new Vector2(350,80),()=>{goalPage=Mathf.Min(pages-1,goalPage+1);RebuildMenu();});
+            lesson.text=!hints?"Hints hidden. Placement feedback stays enabled.":Mode==LabMode.Free?FreeInstructions:instructions[lessonStep];
+            energyText.text=$"Goals: page {goalPage+1}/{pages}\n"+(Mode==LabMode.Free?(FreeGoal!=null?"Goal: "+FreeGoal+" "+freeGoalFormula:"No goal: anything you finish gets named."):"Or drop any atom on the teal ring to build freely.");
             ShortcutRow(page);
+        }
+        void SetGuidedGoals(bool guided)
+        {
+            GuidedGoals=guided; RebuildMenu();
+            Notify(guided?"Goals show guide spots for every atom.":"Goals show only the formula: work out the structure yourself.");
+        }
+        /// <summary>Picks a goal: a guided recipe (seed and guide spots), or a formula to build freely on the teal ring.</summary>
+        public void ChooseGoal(BuildGoal goal)
+        {
+            if(goal==null || reacting) return;
+            if(GuidedGoals && goal.Recipe!=null) { FreeGoal=null; freeGoalRecipe=null; StartMolecule(goal.Recipe); return; }
+            if(Mode!=LabMode.Free) SetMode(LabMode.Free);
+            FreeGoal=goal.Name; freeGoalFormula=goal.Hill; freeGoalRecipe=goal.Recipe; RebuildMenu();
+            Notify("Goal: "+goal.Name+" ("+goal.Formula+"). No guide spots: drop an atom on the teal ring and work out the bonds yourself.");
+        }
+        /// <summary>No goal: build anything; the finished structure is named (recipe match or PubChem).</summary>
+        public void BuildAnything()
+        {
+            if(reacting) return;
+            FreeGoal=null; freeGoalRecipe=null;
+            if(Mode!=LabMode.Free) SetMode(LabMode.Free);
+            RebuildMenu(); Notify("No goal: build anything. Drop an atom on the teal ring; finished structures are named automatically.");
         }
         /// <summary>The same three large shortcuts in BUILD and FREE BUILD, in the same place.</summary>
         void ShortcutRow(Transform page)

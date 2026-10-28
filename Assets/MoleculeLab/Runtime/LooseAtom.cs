@@ -9,6 +9,7 @@ namespace MoleculeLab
         void OnDisable() { Active.Remove(this); }
         public ElementDefinition Element { get; private set; }
         public XRGrabInteractable Grab { get; private set; }
+        public Rigidbody Body { get; private set; }
         public int TokenId { get; private set; }
         public string Owner => "loose:"+TokenId;
         public bool OnShelf { get; private set; } = true;
@@ -20,7 +21,8 @@ namespace MoleculeLab
         public void Initialize(LabController owner,ElementDefinition element,int tokenId)
         {
             lab=owner; Element=element; TokenId=tokenId;
-            var body=gameObject.AddComponent<Rigidbody>(); body.mass=.05f; body.useGravity=false; body.isKinematic=true;
+            var body=gameObject.AddComponent<Rigidbody>(); body.mass=.05f; body.useGravity=false; body.isKinematic=true; Body=body;
+            body.linearDamping=.4f; body.angularDamping=3; body.maxDepenetrationVelocity=.6f;
             body.interpolation=RigidbodyInterpolation.Interpolate; body.collisionDetectionMode=CollisionDetectionMode.ContinuousSpeculative;
             Grab=gameObject.AddComponent<XRGrabInteractable>(); Grab.throwOnDetach=false;
             // Velocity tracking: a held atom is pushed by physics towards the hand, so it stops at the bench, shelves and walls.
@@ -72,13 +74,24 @@ namespace MoleculeLab
             if(!OnShelf && !lab.Inventory.Transfer(TokenId,Owner,AtomInventory.Shelf)) return;
             // Unlimited baskets: the socket already holds a fresh atom, so this one leaves play.
             if(lab.Inventory.IsRetired(TokenId)) { lab.RetireLooseAtom(this); return; }
-            OnShelf=true; transform.position=lab.Environment.SocketPosition(lab.Inventory.Tokens[TokenId].Socket); transform.rotation=Quaternion.identity; ShowShelfSize(true); lab.RefreshStock();
+            OnShelf=true; Fall(false);
+            transform.position=lab.Environment.SocketPosition(lab.Inventory.Tokens[TokenId].Socket); transform.rotation=Quaternion.identity;
+            if(Body!=null) { Body.position=transform.position; Body.rotation=transform.rotation; }
+            ShowShelfSize(true); lab.RefreshStock();
         }
         public void FaceSymbol(Camera camera)
         { if(camera!=null && symbolLabel!=null) symbolLabel.transform.position=transform.position+(camera.transform.position-transform.position).normalized*(transform.lossyScale.x*.5f+.012f); }
+        /// <summary>Atoms in a beaker stay put; an atom taken out and let go falls onto whatever is below it.</summary>
+        void Fall(bool fall)
+        {
+            if(Body==null || Body.isKinematic!=fall) return;
+            if(!fall) { Body.linearVelocity=Vector3.zero; Body.angularVelocity=Vector3.zero; }
+            Body.isKinematic=!fall; Body.useGravity=fall; if(fall) Body.WakeUp();
+        }
         void Update()
         {
             if(lab==null || Grab==null) return;
+            if(!Grab.isSelected) Fall(!OnShelf);
             if(Grab.isSelected) lab.PreviewAtom(this);
             else if(!OnShelf && (transform.position.y<.3f || transform.position.magnitude>12)) ReturnHome();
             // An atom taken from a beaker and left unused for a while disappears (the beaker is endless).

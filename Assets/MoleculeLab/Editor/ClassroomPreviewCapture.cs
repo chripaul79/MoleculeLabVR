@@ -64,14 +64,49 @@ namespace MoleculeLab.Editor
                 Shot(camera,"5-rear-counters",new Vector3(.2f,1.55f,1.2f),new Vector3(0,1.0f,3.2f),75);
                 Shot(camera,"6-gallery",new Vector3(.3f,1.7f,-.9f),new Vector3(0,1.2f,-4.4f),75);
                 var station=GameObject.Find("Reaction station (runtime)");
-                if(station!=null) Shot(camera,"8-reaction-station",station.transform.position+new Vector3(-.35f,.55f,-.75f),station.transform.position+Vector3.up*.12f,60);
+                if(station!=null) Shot(camera,"8-reaction-station",station.transform.position+new Vector3(-.8f,.55f,.35f),station.transform.position+Vector3.up*.12f,60);
+                if(station!=null) Shot(camera,"14-reaction-corner",new Vector3(.3f,1.6f,.4f),new Vector3(3.0f,1.2f,-1.0f),75);
                 var beaker=GameObject.Find("Beaker C");
                 if(beaker!=null) Shot(camera,"7-beakers",beaker.transform.position+new Vector3(.25f,.25f,-.45f),beaker.transform.position+Vector3.up*.05f,55);
                 Debug.Log("Classroom preview saved to Documentation/Classroom. "+lab.Classroom.PlacedModels+" models placed"+
                     (lab.Classroom.Skipped.Count>0?"; skipped: "+string.Join(", ",lab.Classroom.Skipped):"."));
+                if(lab.Station!=null) { ScheduleEffects(camera,lab); return; }
             }
             catch(Exception e) { Debug.LogException(e); }
             EditorApplication.ExitPlaymode();
+        }
+        // ---------- reaction effects, photographed over a few seconds of play ----------
+        static readonly System.Collections.Generic.List<(double at,Action act)> steps=new System.Collections.Generic.List<(double,Action)>();
+        static void ScheduleEffects(Camera camera,LabController lab)
+        {
+            var station=lab.Station; var t0=EditorApplication.timeSinceStartup;
+            var eye=station.transform.position+new Vector3(-.75f,.42f,.3f); var at=station.transform.position+Vector3.up*.14f;
+            void At(double dt,Action a) => steps.Add((t0+dt,a));
+            At(0,()=>station.PlayReaction(ReactionCondition.Ignition));
+            At(.3,()=>Shot(camera,"9-fire",eye,at,55));
+            At(1.4,()=>Shot(camera,"10-steam",eye,at,55));
+            At(2.8,()=>station.PlayReaction(ReactionCondition.PalladiumCatalyst));
+            At(3.5,()=>Shot(camera,"11-sparkles",eye,at,55));
+            At(4.8,()=>station.PlayReaction(ReactionCondition.AcidCatalyst));
+            At(5.6,()=>Shot(camera,"12-bubbles",eye,at,55));
+            At(6.9,()=>
+            {
+                var offsets=new[]{new Vector3(-.13f,.02f,0),new Vector3(.13f,.06f,0),new Vector3(0,.1f,.05f)};
+                for(var i=0;i<station.Tools.Count;i++) { var tool=station.Tools[i]; tool.previewHeld=true; tool.transform.position=station.Mouth+offsets[i]; }
+            });
+            At(8.2,()=>Shot(camera,"13-tools",station.transform.position+new Vector3(-.6f,.5f,.3f),station.Mouth+Vector3.down*.05f,55));
+            At(8.4,()=>{ Debug.Log("Effect previews saved."); EditorApplication.ExitPlaymode(); });
+            EditorApplication.update-=EffectsTick; EditorApplication.update+=EffectsTick;
+        }
+        static void EffectsTick()
+        {
+            if(!EditorApplication.isPlaying) { steps.Clear(); EditorApplication.update-=EffectsTick; return; }
+            while(steps.Count>0 && EditorApplication.timeSinceStartup>=steps[0].at)
+            {
+                var step=steps[0]; steps.RemoveAt(0);
+                try { step.act(); } catch(Exception e) { Debug.LogException(e); }
+            }
+            if(steps.Count==0) EditorApplication.update-=EffectsTick;
         }
         static void Stop() { EditorApplication.update-=Tick; SessionState.SetBool(Key,false); }
         static void Shot(Camera camera,string name,Vector3 from,Vector3 to,float fov)

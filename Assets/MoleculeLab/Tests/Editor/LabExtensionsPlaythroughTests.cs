@@ -78,6 +78,8 @@ namespace MoleculeLab.Tests
 
             // Gravity: a finished molecule is a dynamic body and falls onto the bench.
             Assert.That(water.Body.isKinematic,Is.False); Assert.That(water.Body.useGravity,Is.True);
+            // It was built on the tabletop; lifted and let go, it falls back.
+            water.transform.position+=Vector3.up*.3f; water.Body.position=water.transform.position; water.Body.linearVelocity=Vector3.zero;
             var start=water.transform.position.y;
             for(var deadline=EditorApplication.timeSinceStartup+1.5;EditorApplication.timeSinceStartup<deadline;) yield return null;
             Assert.That(water.transform.position.y,Is.LessThan(start-.15f)); Assert.That(water.transform.position.y,Is.GreaterThan(lab.Environment.bench.position.y),"It lands on the bench, not through it.");
@@ -231,9 +233,35 @@ namespace MoleculeLab.Tests
             for(var deadline=EditorApplication.timeSinceStartup+8;lab.IsReacting && EditorApplication.timeSinceStartup<deadline;) yield return null;
             yield return null;
             Assert.That(Object.FindObjectsByType<MoleculeView>().Count(v=>v.Definition.id=="water"),Is.EqualTo(2));
-            // A molecule no reaction uses is refused with a message.
-            var ethane=Assemble(lab,"ethane"); ethane.transform.position=lab.Environment.tray.position+Vector3.up*.2f; lab.MoleculeReleased(ethane);
-            Assert.That(ethane.Docked,Is.False); Assert.That(lab.Station.Label.text,Does.Contain("No reaction"));
+            var waters=Object.FindObjectsByType<MoleculeView>().ToArray();
+            for(var i=0;i<waters.Length;i++) lab.MoleculeIntoBin(waters[i],i==0); // one water into the gallery, for the copy below
+            yield return null; AssertInventory(lab);
+            void Dock(MoleculeView view) { view.transform.position=lab.Environment.tray.position+Vector3.up*.2f; lab.MoleculeReleased(view); Assert.That(view.Docked,Is.True,view.Definition.id); }
+
+            // Reaction rules: any finished molecule goes in, and the label says what each tool would need.
+            var ethane=Assemble(lab,"ethane"); Dock(ethane);
+            Assert.That(lab.PlanFor(ReactionCondition.Ignition).Hint,Does.Contain("another C2H6"),"The O atoms must pair up: burning ethane needs two of them.");
+            lab.Station.Tools.First(t=>t.Condition==ReactionCondition.Ignition).UseOnVessel();
+            Assert.That(lab.IsReacting,Is.False); lab.RecycleSelected(); yield return null;
+            if(ethane!=null) { lab.Select(ethane); lab.RecycleSelected(); yield return null; }
+
+            // Ethanol is not in a fixed recipe, but the FLAME rule burns it: C2H6O + 3 O2 -> 2 CO2 + 3 H2O.
+            Dock(Assemble(lab,"ethanol")); for(var i=0;i<3;i++) Dock(Assemble(lab,"oxygen"));
+            Assert.That(lab.PlanFor(ReactionCondition.Ignition).Ready,Is.True,lab.PlanFor(ReactionCondition.Ignition).Hint);
+            lab.Station.Tools.First(t=>t.Condition==ReactionCondition.Ignition).UseOnVessel();
+            Assert.That(lab.IsReacting,Is.True);
+            for(var deadline=EditorApplication.timeSinceStartup+8;lab.IsReacting && EditorApplication.timeSinceStartup<deadline;) yield return null;
+            yield return null; AssertInventory(lab);
+            Assert.That(Object.FindObjectsByType<MoleculeView>().Count(v=>v.Definition.id=="carbon-dioxide" || v.Definition.formula=="CO2"),Is.EqualTo(2));
+            Assert.That(Object.FindObjectsByType<MoleculeView>().Count(v=>v.Definition.id=="water"),Is.EqualTo(3));
+            foreach(var view in Object.FindObjectsByType<MoleculeView>().ToArray()) { lab.Select(view); lab.RecycleSelected(); }
+            yield return null;
+
+            // A gallery exhibit let go over the vessel puts a copy in, made from beaker atoms.
+            Assert.That(lab.Gallery.Entries.Any(e=>e.id=="water"),Is.True);
+            Assert.That(lab.CopyExhibitIntoVessel(lab.Gallery.Entries.First(e=>e.id=="water")),Is.True);
+            Assert.That(Object.FindObjectsByType<MoleculeView>().Count(v=>v.Docked && v.Definition.id=="water"),Is.EqualTo(1));
+            yield return null; AssertInventory(lab);
             yield return new ExitPlayMode();
         }
 

@@ -43,10 +43,19 @@ namespace MoleculeLab
             var panel=Rect("Panel",menuRoot,Vector2.zero,menuRoot.sizeDelta).gameObject.AddComponent<Image>(); panel.color=new Color(.025f,.055f,.085f); panel.raycastTarget=true;
             Text(menuRoot,"MOLECULE LAB",new Vector2(-470,555),new Vector2(800,80),48,new Color(.25f,.95f,.85f));
             modeText=Text(menuRoot,"BUILD MODE",new Vector2(480,555),new Vector2(650,60),28,Color.white);
-            // Reactions happen at the vessel on the bench, so there is no REACT tab.
-            string[] names={"BUILD","FREE BUILD","INSPECT","SETTINGS"};
-            LabMode[] tabModes={LabMode.Build,LabMode.Free,LabMode.Inspect,LabMode.Build};
-            for(var i=0;i<names.Length;i++) { var tab=i; Button(menuRoot,names[i],new Vector2(-660+i*440,455),new Vector2(410,80),()=> { if(tab==names.Length-1) { settingsPage=true; RebuildMenu(); } else SetMode(tabModes[tab]); }); }
+            // One BUILD tab for recipes and free building (reactions happen at the vessel, so there is no REACT tab).
+            string[] names={"BUILD","INSPECT","SETTINGS"};
+            for(var i=0;i<names.Length;i++)
+            {
+                var tab=i;
+                Button(menuRoot,names[i],new Vector2(-600+i*600,455),new Vector2(560,80),()=>
+                {
+                    if(tab==2) { settingsPage=true; RebuildMenu(); }
+                    else if(tab==1) SetMode(LabMode.Inspect);
+                    else if(Mode==LabMode.Build || Mode==LabMode.Free) { settingsPage=false; RebuildMenu(); } // keep what is being built
+                    else SetMode(LabMode.Build);
+                },30);
+            }
             // Status line at the very bottom; the space above it holds the shortcut row (the old help lines are gone).
             status=Text(menuRoot,"",new Vector2(0,-530),new Vector2(1690,120),30,Color.white);
             RebuildMenu();
@@ -67,20 +76,7 @@ namespace MoleculeLab
                 for(var i=0;i<labels.Length;i++) Button(page,labels[i],new Vector2(-650+(i%2)*410,300-(i/2)*125),new Vector2(375,80),actions[i]);
                 lesson.text="Fit the workstation to your seated or standing reach. Both hands support direct pinch grabs. Point and pinch also grabs distant objects. Release before changing targets.";
             }
-            else if(Mode==LabMode.Build)
-            {
-                moleculePage=Mathf.Clamp(moleculePage,0,(molecules.Length-1)/4);
-                for(var i=0;i<4;i++)
-                {
-                    var index=moleculePage*4+i; if(index>=molecules.Length) break; var m=molecules[index];
-                    Button(page,m.displayName+"  "+m.formula,new Vector2(-450,300-i*125),new Vector2(760,80),()=>StartMolecule(m));
-                }
-                Button(page,"< Previous",new Vector2(-650,-200),new Vector2(350,80),()=>{moleculePage=Mathf.Max(0,moleculePage-1);RebuildMenu();});
-                Button(page,"Next >",new Vector2(-250,-200),new Vector2(350,80),()=>{moleculePage=Mathf.Min((molecules.Length-1)/4,moleculePage+1);RebuildMenu();});
-                energyText.text=$"Molecules: page {moleculePage+1}/{(molecules.Length+3)/4}\nReactions: put molecules in the vessel on the bench.";
-                ShortcutRow(page);
-            }
-            else if(Mode==LabMode.Free) BuildFreePage(page);
+            else if(Mode==LabMode.Build || Mode==LabMode.Free) BuildPage(page);
             else if(Mode==LabMode.Inspect)
             {
                 Text(page,Selected==null?"Grab a completed molecule to inspect it.":Selected.Definition.displayName+"  "+Selected.Definition.formula+"\n"+Selected.Definition.geometry+"\n"+Selected.Definition.electronicState,new Vector2(-450,160),new Vector2(780,360),27,Color.white);

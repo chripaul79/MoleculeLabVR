@@ -14,11 +14,40 @@ namespace MoleculeLab
 
         void BuildPhysicalControls()
         {
-            ResetControl=ResetButton.Create(bench,this);
-            // Gallery: a hole in the back left of the workbench (moves with the bench). Trash: a floor bin to the right.
-            GalleryBin=MoleculeBin.CreateHole(bench,this,new Vector3(-.78f,0,.22f));
-            TrashBin=MoleculeBin.Create(Environment.transform,this,false,new Vector3(1.4f,0,.9f));
-            Station=ReactionStation.Create(this,bench,tray,classroomKit);
+            // Reset button front left and the gallery hole back left, both at the far left end of the wider bench.
+            var end=BenchWidth*.5f;
+            ResetControl=ResetButton.Create(bench,this,new Vector3(-(end-.2f),.04f,-.3f));
+            GalleryBin=MoleculeBin.CreateHole(bench,this,new Vector3(-(end-.3f),0,.2f));
+            TrashBin=MoleculeBin.Create(Environment.transform,this,false,new Vector3(end+.45f,0,.9f));
+        }
+        /// <summary>
+        /// The reaction corner: a pack table against the right wall, under the reactions whiteboard, with the vessel and tools.
+        /// The old tray on the workbench is retired; the vessel's anchor becomes the lab's "Reaction tray".
+        /// </summary>
+        void BuildReactionCorner()
+        {
+            var wall=Classroom!=null?Classroom.SideWall:2.94f;
+            var local=new Vector3(wall-.36f,0,ClassroomBuilder.ReactionCornerZ);
+            var table=brightClassroom && classroomKit!=null?classroomKit.desk:null;
+            Station=ReactionStation.Create(this,Environment.transform,local,90,table,classroomKit);
+            var oldTray=Environment.tray;
+            if(oldTray!=null && oldTray!=Station.Anchor)
+            {
+                oldTray.name="Reaction tray (retired)"; oldTray.gameObject.SetActive(false);
+                foreach(var t in bench.GetComponentsInChildren<TMPro.TMP_Text>(true)) if(t.text.Trim()=="REACTION TRAY" || t.text.Trim()=="REACTION VESSEL") t.gameObject.SetActive(false);
+            }
+            tray=Station.Anchor; Environment.tray=Station.Anchor;
+        }
+        /// <summary>The workbench is widened to this (it was 2.05 m), so finished molecules have room away from the gallery hole.</summary>
+        public const float BenchWidth=2.6f;
+        void WidenBench()
+        {
+            var stretch=BenchWidth/2.05f;
+            foreach(var t in bench.GetComponentsInChildren<Transform>(true))
+            {
+                if(t.name=="Workbench" || t.name=="Worktable timber edge") { var s=t.localScale; s.x*=stretch; t.localScale=s; }
+                else if(t.name=="Table support") { var p=t.localPosition; p.x=Mathf.Sign(p.x)*(BenchWidth*.5f-.17f); t.localPosition=p; }
+            }
         }
         /// <summary>Everything resets except the gallery, which is saved between sessions.</summary>
         public void ResetFromButton()
@@ -43,46 +72,66 @@ namespace MoleculeLab
         }
         // ---------- the physical reaction station ----------
         public static string ToolName(ReactionCondition condition) => condition==ReactionCondition.Ignition?"FLAME":condition==ReactionCondition.PalladiumCatalyst?"Pd CATALYST":condition==ReactionCondition.AcidCatalyst?"ACID":"no tool";
-        /// <summary>A tool held over the vessel: supply its condition and, if everything is there, run the reaction.</summary>
+        /// <summary>A tool held over the vessel (or, for tool-free reactions, nothing at all): run the reaction it makes possible, or say what is missing.</summary>
         public void ApplyCondition(ReactionCondition condition)
         {
             if(reacting) return;
-            var docked=views.Where(v=>v!=null && v.Docked && !v.Grab.isSelected).ToArray();
+            var docked=DockedViews();
             if(docked.Length==0) { Station?.Flash("Put finished molecules in the vessel first."); return; }
-            SelectedCondition=condition; UpdateTray();
-            if(!CanActivate(out var reason))
+            var reaction=FindReaction(docked,condition,out var plan,out var problem);
+            if(reaction==null)
             {
-                var needed=ActiveReaction!=null?ActiveReaction.requiredCondition:ReactionCondition.None;
-                var message=ActiveReaction!=null && InputsComplete() && needed!=condition?"The "+ToolName(condition)+" does nothing here. This reaction needs the "+ToolName(needed)+".":reason;
+                ReactionCondition? other=null;
+                foreach(var tool in ReactionRules.Tools) if(tool!=condition && CanRunWith(docked,tool)) { other=tool; break; }
+                var message=problem!=null?problem:
+                    other!=null?"The "+ToolName(condition)+" does nothing here. This reaction needs the "+ToolName(other.Value)+".":
+                    plan!=null && plan.State==PlanState.Missing?ToolName(condition)+": "+plan.Hint+".":
+                    "The "+ToolName(condition)+" does nothing with these molecules. It "+(plan!=null?plan.Hint:"")+".";
                 Station?.Flash(message); Notify(message); return;
             }
+            ActiveReaction=reaction; SelectedCondition=condition; UpdateTray();
             ActivateReaction();
         }
-        bool InputsComplete()
-        {
-            if(ActiveReaction==null) return false;
-            var docked=views.Where(v=>v!=null && v.Docked && !v.Grab.isSelected).ToArray();
-            return ActiveReaction.inputs.All(p=>docked.Count(v=>v.Definition==p.molecule)>=p.count);
-        }
-        /// <summary>The reaction that can use everything already in the vessel plus <paramref name="adding"/> (the current one if it still fits).</summary>
+        /// <summary>The curated recipe that can use everything in the vessel (the current one if it still fits); null if none does.</summary>
         ReactionDefinition ChooseReaction(IEnumerable<MoleculeDefinition> contents)
         {
             var list=contents.ToList();
             bool Fits(ReactionDefinition r)=>r!=null && list.GroupBy(d=>d).All(g=>r.inputs.Any(p=>p.molecule==g.Key && p.count>=g.Count()));
-            if(Fits(ActiveReaction)) return ActiveReaction;
+            if(Curated(ActiveReaction) && Fits(ActiveReaction)) return ActiveReaction;
             return reactions?.FirstOrDefault(Fits);
         }
-        /// <summary>What the vessel label shows: contents, what is missing, and which tool to use.</summary>
+        /// <summary>What the vessel label shows: what is in it and, for each tool, what it would make or what is still missing.</summary>
         public string ReactionStatus()
         {
             if(reacting) return "<b>Reacting...</b>\nAtoms rearrange; nothing is lost.";
-            var docked=views.Where(v=>v!=null && v.Docked && !v.Grab.isSelected).ToArray();
+            var docked=DockedViews();
             if(docked.Length==0) return "<b>REACTION VESSEL</b>\nDrop finished molecules in here";
-            var r=ActiveReaction; if(r==null) return "No known reaction for these molecules.";
-            var checklist=string.Join("   ",r.inputs.Select(p=>$"{Mathf.Min(p.count,docked.Count(v=>v.Definition==p.molecule))}/{p.count} {p.molecule.formula}"));
-            var missing=r.inputs.Where(p=>docked.Count(v=>v.Definition==p.molecule)<p.count).Select(p=>$"{p.count-docked.Count(v=>v.Definition==p.molecule)} more {p.molecule.formula}").ToArray();
-            var next=missing.Length>0?"Add "+string.Join(" and ",missing):"Now hold the <b>"+ToolName(r.requiredCondition)+"</b> over the vessel";
-            return "<b>"+r.title+"</b>\n"+r.equation+"\n"+checklist+"\n"+next;
+            // The label refreshes four times a second; only work the rules out again when the vessel's contents change.
+            if(statusText!=null && statusReaction==ActiveReaction && statusViews!=null && statusViews.SequenceEqual(docked)) return statusText;
+            statusViews=docked; statusReaction=ActiveReaction; statusText=WorkOutStatus(docked); return statusText;
+        }
+        string statusText; MoleculeView[] statusViews; ReactionDefinition statusReaction;
+        string WorkOutStatus(MoleculeView[] docked)
+        {
+            var r=ActiveReaction;
+            if(Curated(r) && ChooseReaction(docked.Select(v=>v.Definition))==r)
+            {
+                var checklist=string.Join("   ",r.inputs.Select(p=>$"{Mathf.Min(p.count,docked.Count(v=>v.Definition==p.molecule))}/{p.count} {p.molecule.formula}"));
+                var missing=r.inputs.Where(p=>docked.Count(v=>v.Definition==p.molecule)<p.count).Select(p=>$"{p.count-docked.Count(v=>v.Definition==p.molecule)} more {p.molecule.formula}").ToArray();
+                var next=missing.Length>0?"Add "+string.Join(" and ",missing):"Now hold the <b>"+ToolName(r.requiredCondition)+"</b> over the vessel";
+                return "<b>"+r.title+"</b>\n"+r.equation+"\n"+checklist+"\n"+next;
+            }
+            var graphs=Graphs(docked); var names=Names(docked); var lines=new List<string>();
+            foreach(var tool in ReactionRules.Tools)
+            {
+                var curated=CuratedFor(docked,tool); var plan=ReactionRules.Plan(graphs,names,tool);
+                if(curated!=null) lines.Add("<b>"+ToolName(tool)+"</b>: "+curated.title+" - ready");
+                else if(plan.Ready) lines.Add("<b>"+ToolName(tool)+"</b>: "+plan.Title+" - ready ("+plan.Equation+")");
+                else if(plan.State==PlanState.Missing) lines.Add("<b>"+ToolName(tool)+"</b>: "+plan.Hint);
+            }
+            if(lines.Count==0) lines.Add("Nothing here reacts yet. Fuels burn with O2 (FLAME); H2 adds to C=C (Pd); water + alkene or acid + alcohol (ACID).");
+            var contents=string.Join(" + ",docked.GroupBy(v=>v.Definition.formula).Select(g=>(g.Count()>1?g.Count()+" ":"")+g.Key));
+            return "<b>In the vessel:</b> "+contents+"\n"+string.Join("\n",lines);
         }
 
         int GalleryCount(string id)

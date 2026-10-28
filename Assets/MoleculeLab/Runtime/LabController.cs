@@ -28,11 +28,12 @@ namespace MoleculeLab
         public TMP_FontAsset font;
         public LabMode Mode { get; private set; }
         public bool Resetting { get; private set; }
-        public Vector3 BuildPosition => bench.position + new Vector3(-.12f,.46f,-.15f);
+        /// <summary>Where a recipe's first atom lands: just above the bench, so it settles onto the tabletop.</summary>
+        public Vector3 BuildPosition => bench.position + new Vector3(-.12f,.1f,-.15f);
         /// <summary>Where dropped molecules are returned: above the left of the bench, clear of the build spot.</summary>
         public Vector3 BenchDropPosition => bench.position + new Vector3(-.3f,.3f,.1f); // clear of the gallery hole
         /// <summary>Free build starts here: just above the bench (the recipe build spot is higher).</summary>
-        public Vector3 FreeBuildPosition => bench.position + new Vector3(-.12f,.22f,-.15f);
+        public Vector3 FreeBuildPosition => bench.position + new Vector3(-.12f,.1f,-.15f);
         /// <summary>Height of the bench's working surface.</summary>
         public float BenchTop => bench.position.y + .04f;
         /// <summary>
@@ -164,7 +165,7 @@ namespace MoleculeLab
             Environment=FindAnyObjectByType<LabEnvironment>();
             if(Environment==null) throw new InvalidOperationException("Install the academic lab environment using Molecule Lab > Install academic environment.");
             bench=Environment.bench; tray=Environment.tray; height=Environment.workstation.position.y;
-            MakeEnvironmentSolid();
+            MakeEnvironmentSolid(); WidenBench();
             // Extra elements (N, S, P, F, Cl, Br) get their own shelf; scene-assigned element assets win.
             var extra=ElementCatalog.Extra.Where(spec=>elements.All(e=>e==null || e.symbol!=spec.Symbol)).Select(ElementCatalog.Create).ToArray();
             ownedResources.AddRange(extra); elements=elements.Concat(extra).ToArray();
@@ -175,7 +176,7 @@ namespace MoleculeLab
             ElementDefinition[] Pick(params string[] symbols) => symbols.Select(s=>elements.FirstOrDefault(e=>e!=null && e.symbol==s)).ToArray();
             var prefabShelf=Environment.workstation.Find("Reachable atom shelf"); if(prefabShelf!=null) prefabShelf.gameObject.SetActive(false);
             // Beakers stand on lab-pack tables either side of the bench (or on simple shelves without the pack).
-            var beakerTable=brightClassroom && classroomKit!=null?classroomKit.desk:null; var sideX=beakerTable!=null?1.7f:.92f; var sideZ=beakerTable!=null?-.05f:-.26f;
+            var beakerTable=brightClassroom && classroomKit!=null?classroomKit.desk:null; var sideX=beakerTable!=null?1.95f:.92f; var sideZ=beakerTable!=null?-.05f:-.26f;
             leftShelf=BeakerShelf.Create(Environment.workstation,"Beaker shelf left (runtime)",new Vector3(-sideX,0,sideZ),-65,new[]{Pick("H","C","O"),Pick("N","S","P")},beakerPrefab,classroomKit?.woodMaterial,classroomKit?.metalMaterial,beakerTable);
             rightShelf=BeakerShelf.Create(Environment.workstation,"Beaker shelf right (runtime)",new Vector3(sideX,0,sideZ),65,new[]{Pick("F","Cl","Br")},beakerPrefab,classroomKit?.woodMaterial,classroomKit?.metalMaterial,beakerTable);
             Environment.runtimeSockets=leftShelf.Sockets.Concat(rightShelf.Sockets).ToArray();
@@ -184,6 +185,7 @@ namespace MoleculeLab
             BuildGallery();
             BuildPhysicalControls();
             if(brightClassroom) Classroom=ClassroomBuilder.Create(Environment,classroomKit,galleryRoom!=null?galleryRoom.transform:null);
+            BuildReactionCorner();
             preview=new GameObject("Bond placement feedback").AddComponent<BondPreview>(); preview.Initialize(this);
             dynamicRoot = new GameObject("Session objects").transform; dynamicRoot.SetParent(transform);
             twistHandle = new GameObject("Twist handle").AddComponent<InspectionHandle>(); twistHandle.Initialize(this,false);
@@ -212,11 +214,11 @@ namespace MoleculeLab
             if(mode!=LabMode.Free && freeView!=null) ClearFreeStructure(false);
             if(mode==LabMode.Free && Mode!=LabMode.Free) PrepareFreeBench();
             Mode=mode;
-            modeText.text=(mode==LabMode.Free?"FREE BUILD":mode.ToString().ToUpperInvariant())+" MODE"; settingsPage=false; RebuildMenu();
+            modeText.text=mode==LabMode.Free?"BUILD MODE - free":mode.ToString().ToUpperInvariant()+" MODE"; settingsPage=false; RebuildMenu();
             if(Selected!=null) { Selected.ShowGeometry(mode==LabMode.Inspect); Selected.Bend(0); }
             if(mode==LabMode.Inspect && Selected!=null && Selected.State.Complete) Achieve("inspect");
-            Notify(mode==LabMode.Build?"Choose a molecule. Direction guides show valid bonding sites.":mode==LabMode.Inspect?"Grab a molecule to inspect. Ethane supports twisting and the energy wand.":
-                mode==LabMode.Free?"Free build: take an atom from a beaker, drop it on the teal ring and keep bonding. Finished molecules are checked in PubChem automatically.":"Choose a reaction, build its inputs, dock them, select conditions, then activate.");
+            Notify(mode==LabMode.Build?"Choose a goal, or drop any atom on the teal ring to build freely.":mode==LabMode.Inspect?"Grab a molecule to inspect. Ethane supports twisting and the energy wand.":
+                mode==LabMode.Free?"Building freely: drop atoms on the teal dots. Pick the structure up by a bond to reach the dots underneath. Finished structures are named automatically.":"Choose a reaction, build its inputs, dock them, select conditions, then activate.");
         }
         public void Select(MoleculeView view)
         {
@@ -308,6 +310,10 @@ namespace MoleculeLab
         public bool TryAttach(LooseAtom atom)
         {
             if(Mode==LabMode.Free) return TryAttachFree(atom);
+            // BUILD with no recipe on the go: an atom let go over the teal ring starts building freely, no menu needed.
+            if(Mode==LabMode.Build && !reacting && atom!=null && loose.Contains(atom) && !atom.Grab.isSelected && !views.Any(v=>v!=null && !v.State.Complete)
+               && Vector3.Distance(atom.transform.position,FreeBuildPosition)<=freeSeedDistance)
+            { SetMode(LabMode.Free); return TryAttachFree(atom); }
             if(atom==null || !loose.Contains(atom) || atom.Grab.isSelected) return false;
             var preferred=preview!=null && preview.Atom==atom?preview.Target:null; var preferredSite=preview!=null?preview.Site:-1;
             if(!FindPlacement(atom,preferred,preferredSite,out var candidate,out var site,out var result) || !result.Ready)
@@ -373,22 +379,12 @@ namespace MoleculeLab
             if(reacting || !view.State.Complete || view.Grab.isSelected) return;
             var delta=view.transform.position-tray.position;
             if(Mathf.Abs(delta.x)>.34f || Mathf.Abs(delta.z)>.35f || Mathf.Abs(delta.y)>.5f) return;
-            // The vessel works out the reaction from what is in it: keep the current one if it still fits, else switch.
+            // Any finished molecule can go in; the vessel label then says which tool would make the contents react.
             var docked=views.Where(v=>v.Docked && v!=view).ToArray();
-            var chosen=ChooseReaction(docked.Select(v=>v.Definition).Append(view.Definition));
-            if(chosen==null)
-            {
-                var message=docked.Length==0?"No reaction in this lab uses "+view.Definition.displayName+".":view.Definition.displayName+" does not react with what is already in the vessel.";
-                Notify(message); Station?.Flash(message); return;
-            }
-            if(chosen!=ActiveReaction) { ActiveReaction=chosen; SelectedCondition=ReactionCondition.None; RebuildMenu(); }
-            var requirement=ActiveReaction.inputs.First(p=>p.molecule==view.Definition);
-            var count=ActiveReaction.inputs.Sum(p=>p.count);
-            var slot=Enumerable.Range(0,count).First(i=>!docked.Any(v=>Vector3.Distance(v.transform.position,TraySlot(i))<.03f));
-            view.transform.localScale=Vector3.one*.4f; view.transform.position=TraySlot(slot); view.Docked=true; UpdateTray();
-            Notify("Docked "+view.Definition.formula+". Follow the reaction checklist."); Station?.Refresh();
+            if(docked.Length>=VesselCapacity) { const string full="The vessel is full: take a molecule out, or use a tool."; Notify(full); Station?.Flash(full); return; }
+            Dock(view,docked);
+            Notify("Added "+view.Definition.formula+" to the vessel. Its label says which tool makes it react.");
         }
-        Vector3 TraySlot(int index) => tray.position+new Vector3(0,.15f,-.19f+index*.19f);
         public void SelectReaction(ReactionDefinition reaction)
         {
             if(reacting || reaction==null || reactions==null || !reactions.Contains(reaction)) return;
@@ -404,7 +400,7 @@ namespace MoleculeLab
         {
             if(reacting) { reason="Reaction is already running."; return false; }
             if(ActiveReaction==null) { reason="Choose a reaction first."; return false; }
-            return ReactionEngine.CanReact(ActiveReaction,views.Where(v=>v.Docked && !v.Grab.isSelected).Select(v=>v.State).ToArray(),out reason,SelectedCondition);
+            return ReactionEngine.CanReact(ActiveReaction,ReactionInputs().Select(v=>v.State).ToArray(),out reason,SelectedCondition);
         }
         void UpdateTray()
         {
@@ -418,10 +414,10 @@ namespace MoleculeLab
         public void ActivateReaction()
         {
             if(reacting) return; // started by a tool over the vessel (or the REACT page); any mode
-            var input=views.Where(v=>v.Docked && !v.Grab.isSelected).ToArray();
             if(ActiveReaction==null) { Notify("Choose a reaction first."); return; }
+            var input=ReactionInputs(); // anything else in the vessel stays there
             if(!ReactionEngine.TryReact(ActiveReaction,input.Select(v=>v.State).ToArray(),out var products,out var reason,SelectedCondition)) { Notify(reason); return; }
-            reacting=true;
+            reacting=true; Station?.PlayReaction(ActiveReaction.requiredCondition);
             foreach(var v in input) { v.CancelSelection(); v.Grab.enabled=false; }
             UpdateTray(); StartCoroutine(AnimateReaction(input,products));
         }
@@ -435,9 +431,16 @@ namespace MoleculeLab
                 yield return null;
             }
             var outputs=new List<MoleculeView>();
-            for(var i=0;i<products.Length;i++) { Selected=Spawn(products[i],bench.position+new Vector3(-.4f+i*.38f,.35f,.08f)); outputs.Add(Selected); }
+            // Products appear in the vessel on the reaction table (away from the gallery hole), where they can be looked at.
+            for(var i=0;i<products.Length;i++)
+            {
+                Selected=Spawn(products[i],Station!=null?Station.ProductSpot(i,products.Length):bench.position+new Vector3(-.4f+i*.38f,.35f,.08f)); outputs.Add(Selected);
+                if(products.Length>2) Selected.transform.localScale=Vector3.one*.6f; // several products share the vessel
+            }
             TransferTokens(input,outputs.ToArray()); foreach(var v in input) Remove(v);
-            reacting=false; UpdateTray(); Achieve("react"); ReactionCompleted?.Invoke(); Notify(string.Join(" + ",ActiveReaction.outputs.Select(p=>p.count+" "+p.molecule.formula))+" formed. Products can be inspected or reused. "+(ActiveReaction.reversible?"Forward illustration only; not an equilibrium yield.":""),true);
+            reacting=false; Station?.Glow(); UpdateTray(); Station?.Refresh(); Achieve("react"); ReactionCompleted?.Invoke();
+            var formed=string.Join(" + ",ActiveReaction.outputs.Select(p=>p.count+" "+p.molecule.displayName))+" formed. ";
+            Notify(formed+(Curated(ActiveReaction)?"Products can be inspected or reused. "+(ActiveReaction.reversible?"Forward illustration only; not an equilibrium yield.":""):ActiveReaction.explanation),true);
         }
         void Remove(MoleculeView view)
         {
@@ -513,7 +516,7 @@ namespace MoleculeLab
             Inventory=new AtomInventory(socketLayout,unlimitedAtoms); Inventory.Refilled+=SpawnShelfAtom;
             Resetting=false; for(var id=0;id<Inventory.Tokens.Count;id++) SpawnShelfAtom(id); RefreshStock();
             ActiveReaction=waterReaction; SelectedCondition=ReactionCondition.None;
-            energyTool.ReturnHome(); EnergyProgress(0); UpdateTray(); Mode=LabMode.Build; settingsPage=false; moleculePage=0; modeText.text="BUILD MODE"; RebuildMenu(); Notify(unlimitedAtoms?"Choose a recipe, or open FREE BUILD. The beakers never run out.":"Choose a recipe. Every atom is back on the shelves.");
+            energyTool.ReturnHome(); EnergyProgress(0); UpdateTray(); Mode=LabMode.Build; settingsPage=false; moleculePage=0; modeText.text="BUILD MODE"; FreeGoal=null; freeGoalRecipe=null; statusText=null; RebuildMenu(); Notify(unlimitedAtoms?"Choose a goal, or drop any atom on the teal ring to build freely. The beakers never run out.":"Choose a goal. Every atom is back on the shelves.");
         }
         void Update()
         {
