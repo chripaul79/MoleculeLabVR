@@ -24,6 +24,7 @@ namespace MoleculeLab
         readonly List<XRHandSubsystem> handSystems=new List<XRHandSubsystem>();
         XROrigin origin;
         public int Presses { get; private set; }
+        float pressedUntil;
         /// <summary>Cap top when not pressed, in world space.</summary>
         public Vector3 CapTop => transform.TransformPoint(new Vector3(0,.06f,0));
 
@@ -41,11 +42,10 @@ namespace MoleculeLab
             var interactable=cap.gameObject.AddComponent<XRSimpleInteractable>();
             interactable.selectEntered.AddListener(args=>
             {
-                // Up-close pinch/grip counts as a press; a ray from across the room does not.
-                var from=(args.interactorObject as Component)?.transform;
-                if(from!=null && Vector3.Distance(from.position,cap.position)<.3f) Fire();
+                // Pressed up close or with a ray from a distance: either way it resets, and the cap visibly goes down.
+                pressedUntil=Time.time+.35f; Fire();
             });
-            var label=LabVisuals.Label(transform,"RESET LAB\npush down",new Vector3(0,.13f,.07f),.02f);
+            var label=LabVisuals.Label(transform,"RESET LAB\npush or point",new Vector3(0,.13f,.07f),.02f);
             var face=label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
             label.color=Color.white;
         }
@@ -89,6 +89,7 @@ namespace MoleculeLab
         {
             var target=0f;
             foreach(var p in Probes()) target=Mathf.Max(target,PushDepth(p));
+            if(Time.time<pressedUntil) target=Travel; // pressed with a ray
             depth=Mathf.MoveTowards(depth,target,Time.deltaTime*.4f);
             cap.localPosition=new Vector3(0,.05f-depth,0);
             if(depth>=Travel*.8f) { heldFor+=Time.deltaTime; if(heldFor>=HoldSeconds) Fire(); }

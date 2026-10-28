@@ -147,14 +147,23 @@ namespace MoleculeLab
             transform.localScale=Vector3.one*Mathf.Min(1,.15f/extent);
             var body=gameObject.AddComponent<Rigidbody>(); body.isKinematic=true; body.useGravity=false;
             Grab=gameObject.AddComponent<XRGrabInteractable>();
-            Grab.throwOnDetach=false; Grab.movementType=XRBaseInteractable.MovementType.VelocityTracking; Grab.useDynamicAttach=true;
+            // Instantaneous: the exhibit stays exactly in the hand (velocity tracking could be held back by the table and stand).
+            Grab.throwOnDetach=false; Grab.movementType=XRBaseInteractable.MovementType.Instantaneous; Grab.useDynamicAttach=true;
+            foreach(var c in GetComponentsInChildren<Collider>()) c.isTrigger=false;
             Grab.firstSelectEntered.AddListener(_=>{ if(lab!=null) lab.ExhibitGrabbed(this); });
             Grab.lastSelectExited.AddListener(_=>{ if(lab!=null) lab.ExhibitReleased(this); });
-            label=LabVisuals.Label(transform.parent,"",Vector3.zero,.022f); label.rectTransform.sizeDelta=new Vector2(.48f,.2f);
+            label=LabVisuals.Label(transform.parent,"",Vector3.zero,.024f); label.rectTransform.sizeDelta=new Vector2(.46f,.12f);
+            var face=label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); } // lies flat on the table
         }
         public void SetSlot(Vector3 world)
         {
-            slot=world; label.transform.position=world+Vector3.down*.13f;
+            slot=world;
+            // Name plate flat on the table between the stand and the nearest table edge, readable from that side.
+            var gallery=transform.parent; var local=gallery.InverseTransformPoint(world);
+            var row=Mathf.RoundToInt((GalleryRoom.FirstTableZ-local.z)/GalleryRoom.TableSpacing); var tableZ=GalleryRoom.FirstTableZ-row*GalleryRoom.TableSpacing;
+            var side=local.z>=tableZ?1f:-1f;
+            label.transform.localPosition=new Vector3(local.x,GalleryRoom.TableTop+.004f,tableZ+side*.355f);
+            label.transform.localRotation=Quaternion.Euler(90,side>0?180:0,0);
             if(!placed || Grab==null || !Grab.isSelected) { if(!placed) transform.position=world; placed=true; }
         }
         public void UpdateLabel(GalleryEntry entry)

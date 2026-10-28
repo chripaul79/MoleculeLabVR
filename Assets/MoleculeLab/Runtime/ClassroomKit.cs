@@ -25,6 +25,9 @@ namespace MoleculeLab
         public GameObject labWall;
         public GameObject labFloor, labRoof, labShelf, labWaterShelf;
         public Material woodMaterial, metalMaterial;
+        [Header("Reaction station tools")]
+        public GameObject toolFlame;
+        public GameObject toolCatalyst, toolAcid;
         [Header("Unused: earlier sci-fi shell")]
         public GameObject scifiWall;
         public GameObject scifiWallAlt, scifiFloor, scifiRoof;

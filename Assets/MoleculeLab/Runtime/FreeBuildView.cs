@@ -333,7 +333,8 @@ namespace MoleculeLab
             }
             if(dragging>=0 && dragging<atomShapes.Count)
             {
-                var held=atomShapes[dragging].localPosition; Structure.SetPosition(dragging,held); shown[dragging]=held;
+                // XRI unparents a grabbed object while it is held, so read its world position, not localPosition.
+                var held=transform.InverseTransformPoint(atomShapes[dragging].position); Structure.SetPosition(dragging,held); shown[dragging]=held;
                 if(EvaluateGesture(dragging,out var gesture,out var partner,out var ready,out var text))
                     DrawPreview(atomShapes[dragging].position,partner>=0?atomShapes[partner].position:transform.position,ready,text);
                 else HidePreviewLines();

@@ -54,6 +54,7 @@ namespace MoleculeLab
             for(var i=0;i<2;i++) Window(new Vector3(WallFace,1.72f,i==0?-.5f:1.55f),1.75f,1.45f);
             BuildWhiteboard();
             if(kit!=null) { Furniture(); if(gallery!=null) GalleryWing(gallery); }
+            PeriodicTable(shell);
         }
 
         // ---------- surfaces ----------
@@ -118,13 +119,13 @@ namespace MoleculeLab
             WallFace=OldWallFace-ShellDepth; RearFace=OldRearFace-ShellDepth;
             // Floor and ceiling: the pack's tiles and ceiling modules, laid out over the room (and the gallery).
             var roomCentre=(GalleryRoom.RoomStart+OldRearFace)*.5f; var roomSize=new Vector2(OldWallFace*2,OldRearFace-GalleryRoom.RoomStart);
-            Tiles(kit.labFloor,"Lab floor",new Vector3(0,0,roomCentre),roomSize,false);
+            WorldFloor("Lab floor",new Vector3(0,0,roomCentre),roomSize);
             var roof=Tiles(kit.labRoof,"Lab ceiling",new Vector3(0,OldCeiling,roomCentre),roomSize,true);
             if(roof>0) CeilingUnderside=OldCeiling-Mathf.Min(roof,.12f);
             if(gallery!=null)
             {
                 var length=GalleryRoom.RoomStart-GalleryRoom.RoomEnd-.06f; var mid=(GalleryRoom.RoomStart+GalleryRoom.RoomEnd+.06f)*.5f;
-                Tiles(kit.labFloor,"Lab gallery floor",new Vector3(0,0,mid),new Vector2(GalleryFace*2,length),false);
+                WorldFloor("Lab gallery floor",new Vector3(0,0,mid),new Vector2(GalleryFace*2,length));
                 Tiles(kit.labRoof,"Lab gallery ceiling",new Vector3(0,OldCeiling,mid),new Vector2(GalleryFace*2,length),true);
             }
             foreach(var t in shell)
@@ -390,6 +391,115 @@ namespace MoleculeLab
             return handwritingFont;
         }
 
+
+        // ---------- periodic table ----------
+        const string ElementSymbols="H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn Fr Ra Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr Rf Db Sg Bh Hs Mt Ds Rg Cn Nh Fl Mc Lv Ts Og";
+        const string ElementCategories="5701455567013455670122222222223445670122222222223344670188888888888888822222222233336701999999999999999222222222333367";
+        static readonly Color[] CategoryColours=
+        {
+            new Color(1f,.62f,.56f), new Color(1f,.8f,.56f), new Color(1f,.92f,.62f), new Color(.78f,.88f,.74f), new Color(.66f,.86f,.76f),
+            new Color(.62f,.84f,1f), new Color(.56f,.93f,.9f), new Color(.8f,.72f,1f), new Color(1f,.74f,.88f), new Color(.94f,.68f,.76f)
+        };
+        static readonly string[] CategoryNames={"Alkali metals","Alkaline earth","Transition metals","Other metals","Metalloids","Non-metals","Halogens","Noble gases","Lanthanides","Actinides"};
+        /// <summary>Row (0 = top) and column (0..17) of element Z in the classic layout; lanthanides and actinides in two rows below.</summary>
+        static (float row,int column) TableCell(int z)
+        {
+            if(z==1) return (0,0); if(z==2) return (0,17);
+            if(z>=57 && z<=71) return (7.4f,z-57+2); if(z>=89 && z<=103) return (8.4f,z-89+2);
+            int[] starts={3,11,19,37,55,87}; var period=1; for(var i=0;i<starts.Length;i++) if(z>=starts[i]) period=i+2;
+            var index=z-starts[period-2]; var row=period-1;
+            if(period<=3) return (row,index<2?index:index+10);   // s-block, then p-block from group 13
+            if(period<=5) return (row,index);                   // 18 elements in a row
+            return (row,index<2?index:index-14);                // after the 14 f-block elements shown below
+        }
+        /// <summary>A full, colour-coded periodic table on the rear wall, replacing the prefab's 18-tile poster.</summary>
+        void PeriodicTable(Transform[] shell)
+        {
+            foreach(var t in shell) if(t!=null && t.name=="Periodic table exhibit") t.gameObject.SetActive(false);
+            foreach(var label in environment.GetComponentsInChildren<TMP_Text>(true))
+                if((label.text??"").StartsWith("CHEMISTRY / TEACHING") || (label.text??"").StartsWith("ELEMENTS / FIRST")) label.gameObject.SetActive(false);
+            const float cell=.145f, gap=.007f; const int columns=18; const float rows=9.4f;
+            var board=new GameObject("Periodic table").transform; board.SetParent(transform,false);
+            board.localPosition=new Vector3(-1.75f,1.86f,RearFace-.012f); // left of the menu screen; local -z faces the room
+            var width=columns*cell+.16f; var height=rows*cell+.3f;
+            void Block(string n,Vector3 p,Vector3 s,Color c)
+            {
+                var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=n; Destroy(go.GetComponent<Collider>());
+                go.transform.SetParent(board,false); go.transform.localPosition=p; go.transform.localScale=s;
+                var r=go.GetComponent<Renderer>(); r.sharedMaterial=LabVisuals.Material(c); r.shadowCastingMode=ShadowCastingMode.Off;
+            }
+            Block("Frame",new Vector3(0,0,.006f),new Vector3(width+.05f,height+.05f,.012f),new Color(.2f,.3f,.38f));
+            Block("Paper",new Vector3(0,0,0),new Vector3(width,height,.006f),new Color(.98f,.98f,.97f));
+            var left=-columns*cell*.5f+cell*.5f; var top=height*.5f-.2f-cell*.5f;
+            var symbols=ElementSymbols.Split(' ');
+            for(var z=1;z<=symbols.Length;z++)
+            {
+                var (row,column)=TableCell(z);
+                var p=new Vector3(left+column*cell,top-row*cell,-.006f);
+                Block("Element "+symbols[z-1],p,new Vector3(cell-gap,cell-gap,.004f),CategoryColours[ElementCategories[z-1]-'0']);
+                var text=LabVisuals.Label(board,"<size=48%>"+z+"</size>\n<b>"+symbols[z-1]+"</b>",p+new Vector3(0,0,-.006f),.05f);
+                var face=text.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
+                text.transform.localRotation=Quaternion.identity; text.rectTransform.sizeDelta=new Vector2(cell,cell); text.color=new Color(.1f,.13f,.18f);
+                text.textWrappingMode=TextWrappingModes.NoWrap;
+            }
+            // Placeholders for the f-block in group 3, and a title in the gap above the transition metals.
+            foreach(var (row,label) in new[]{(5f,"57-71"),(6f,"89-103")})
+            {
+                var p=new Vector3(left+2*cell,top-row*cell,-.006f);
+                Block("f-block",p,new Vector3(cell-gap,cell-gap,.004f),CategoryColours[row<6?8:9]);
+                var t=LabVisuals.Label(board,label,p+new Vector3(0,0,-.006f),.022f); var f=t.GetComponent<FaceViewer>(); if(f!=null) { f.enabled=false; Destroy(f); }
+                t.transform.localRotation=Quaternion.identity; t.rectTransform.sizeDelta=new Vector2(cell,cell); t.color=new Color(.1f,.13f,.18f);
+            }
+            var title=LabVisuals.Label(board,"<b>PERIODIC TABLE OF THE ELEMENTS</b>",new Vector3(0,height*.5f-.1f,-.008f),.07f);
+            var tf=title.GetComponent<FaceViewer>(); if(tf!=null) { tf.enabled=false; Destroy(tf); }
+            title.transform.localRotation=Quaternion.identity; title.rectTransform.sizeDelta=new Vector2(width,.14f); title.color=new Color(.12f,.2f,.3f);
+            // Colour key in the empty space above the transition metals.
+            for(var i=0;i<CategoryNames.Length;i++)
+            {
+                var p=new Vector3(left+(2.4f+(i%5)*1.9f)*cell,top-(.35f+(i/5)*.55f)*cell,-.006f);
+                Block("Key",p,new Vector3(cell*.35f,cell*.35f,.004f),CategoryColours[i]);
+                var k=LabVisuals.Label(board,CategoryNames[i],p+new Vector3(cell*1.05f,0,-.004f),.022f); var kf=k.GetComponent<FaceViewer>(); if(kf!=null) { kf.enabled=false; Destroy(kf); }
+                k.transform.localRotation=Quaternion.identity; k.rectTransform.sizeDelta=new Vector2(cell*1.6f,cell*.4f); k.alignment=TextAlignmentOptions.Left; k.color=new Color(.15f,.18f,.22f);
+            }
+        }
+
+        /// <summary>A plain wooden door with a frame, handle and small window: the way out of the gallery.</summary>
+        void Door(Vector3 bottomCentre,float yaw)
+        {
+            var door=new GameObject("Gallery door").transform; door.SetParent(transform,false); door.localPosition=bottomCentre; door.localRotation=Quaternion.Euler(0,yaw,0);
+            void Part(string n,Vector3 p,Vector3 s,Color c)
+            {
+                var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=n; Destroy(go.GetComponent<Collider>());
+                go.transform.SetParent(door,false); go.transform.localPosition=p; go.transform.localScale=s; go.GetComponent<Renderer>().sharedMaterial=LabVisuals.Material(c);
+            }
+            var frame=new Color(.9f,.9f,.88f); var wood=new Color(.62f,.42f,.24f);
+            Part("Door leaf",new Vector3(0,1.03f,.025f),new Vector3(.92f,2.06f,.045f),wood);
+            Part("Frame left",new Vector3(-.5f,1.06f,.03f),new Vector3(.07f,2.12f,.06f),frame);
+            Part("Frame right",new Vector3(.5f,1.06f,.03f),new Vector3(.07f,2.12f,.06f),frame);
+            Part("Frame top",new Vector3(0,2.13f,.03f),new Vector3(1.07f,.07f,.06f),frame);
+            Part("Window",new Vector3(0,1.55f,.05f),new Vector3(.3f,.45f,.01f),new Color(.75f,.88f,.95f));
+            Part("Handle",new Vector3(.36f,1.02f,.065f),new Vector3(.14f,.025f,.03f),new Color(.75f,.76f,.78f));
+            Part("Kick plate",new Vector3(0,.12f,.05f),new Vector3(.88f,.2f,.008f),new Color(.7f,.72f,.74f));
+            var sign=LabVisuals.Label(door,"EXIT",new Vector3(0,2.3f,.06f),.05f); var f=sign.GetComponent<FaceViewer>(); if(f!=null) { f.enabled=false; Destroy(f); }
+            sign.transform.localRotation=Quaternion.Euler(0,180,0); sign.color=new Color(.1f,.55f,.25f); sign.fontStyle=FontStyles.Bold;
+        }
+
+        /// <summary>One floor surface whose texture is laid out in world space, so the room and the gallery tiles line up exactly.</summary>
+        void WorldFloor(string name,Vector3 centre,Vector2 size)
+        {
+            const float repeat=2f; // metres per texture repeat
+            var mesh=new Mesh{name=name};
+            var x0=centre.x-size.x*.5f; var x1=centre.x+size.x*.5f; var z0=centre.z-size.y*.5f; var z1=centre.z+size.y*.5f;
+            mesh.vertices=new[]{new Vector3(x0,0,z0),new Vector3(x0,0,z1),new Vector3(x1,0,z1),new Vector3(x1,0,z0)};
+            mesh.uv=new[]{new Vector2(x0,z0)/repeat,new Vector2(x0,z1)/repeat,new Vector2(x1,z1)/repeat,new Vector2(x1,z0)/repeat};
+            mesh.triangles=new[]{0,1,2,0,2,3}; mesh.RecalculateNormals(); mesh.RecalculateTangents(); mesh.RecalculateBounds();
+            var go=new GameObject(name); go.transform.SetParent(transform,false); go.transform.localPosition=new Vector3(0,.003f,0);
+            go.AddComponent<MeshFilter>().sharedMesh=mesh;
+            if(floorMaterial==null) { floorMaterial=FloorMaterial(1,1); floorMaterial.SetTextureScale("_BaseMap",Vector2.one); floorMaterial.SetTextureScale("_BumpMap",Vector2.one); }
+            var r=go.AddComponent<MeshRenderer>(); r.sharedMaterial=floorMaterial; r.shadowCastingMode=ShadowCastingMode.Off;
+        }
+        Material floorMaterial;
+
         // ---------- furniture from the lab pack ----------
         void Furniture()
         {
@@ -448,7 +558,7 @@ namespace MoleculeLab
         {
             if(desk==null) return;
             // Stool tucked half under the desk: seat below the desktop, and it stays out of the walkway around the bench.
-            var depth=Size(desk).z; var front=desk.localPosition+desk.localRotation*Vector3.forward*(depth-.2f);
+            var depth=Size(desk).z; var front=desk.localPosition+desk.localRotation*Vector3.forward*(depth+.28f); // in front of the cabinet, not inside it
             Place(kit.chair,name,front,yaw,Fit.Height,.62f,false,true);
         }
         /// <summary>Stands small objects in a row on top of a placed piece of furniture.</summary>
@@ -477,6 +587,7 @@ namespace MoleculeLab
             foreach(var side in new[]{-1,1})
                 TileWall(side<0?"Gallery wall left":"Gallery wall right",new Vector3(side*GalleryFace,0,start),new Vector3(side*GalleryFace,0,end+ShellDepth),side<0?90:-90);
             GallerySigns(gallery,end+ShellDepth);
+            Door(new Vector3(GalleryFace-.85f,0,end+ShellDepth),0);
         }
 
         /// <summary>Brings the gallery's signs in front of the end-wall panels.</summary>
@@ -533,6 +644,9 @@ namespace MoleculeLab
                 var box=holder.gameObject.AddComponent<BoxCollider>();
                 box.center=new Vector3(0,size.y*.5f,backToWall?size.z*.5f:0); box.size=size;
             }
+            // Opaque furniture is drawn from both sides: some pack models have no back faces (open-backed drawers).
+            foreach(var r in model.GetComponentsInChildren<Renderer>(true))
+                foreach(var m in r.materials) if(m.renderQueue<2500 && m.HasProperty("_Cull")) { m.SetFloat("_Cull",0); m.doubleSidedGI=true; }
             PlacedModels++;
             return holder;
         }

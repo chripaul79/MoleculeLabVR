@@ -63,6 +63,8 @@ namespace MoleculeLab.Editor
                 Shot(camera,"4-whiteboard",new Vector3(1.6f,1.6f,.4f),new Vector3(-2.9f,1.45f,.6f),75);
                 Shot(camera,"5-rear-counters",new Vector3(.2f,1.55f,1.2f),new Vector3(0,1.0f,3.2f),75);
                 Shot(camera,"6-gallery",new Vector3(.3f,1.7f,-.9f),new Vector3(0,1.2f,-4.4f),75);
+                var station=GameObject.Find("Reaction station (runtime)");
+                if(station!=null) Shot(camera,"8-reaction-station",station.transform.position+new Vector3(-.35f,.55f,-.75f),station.transform.position+Vector3.up*.12f,60);
                 var beaker=GameObject.Find("Beaker C");
                 if(beaker!=null) Shot(camera,"7-beakers",beaker.transform.position+new Vector3(.25f,.25f,-.45f),beaker.transform.position+Vector3.up*.05f,55);
                 Debug.Log("Classroom preview saved to Documentation/Classroom. "+lab.Classroom.PlacedModels+" models placed"+

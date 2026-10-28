@@ -78,7 +78,18 @@ namespace MoleculeLab.Tests
                 state.Step(0,0,null,null,null);
                 lab.SetMode(LabMode.Build);
                 for(var i=0;i<5;i++) yield return null;
-                var hit=ray.TryGetCurrentUIRaycastResult(out var result)?result.gameObject.name:"nothing";
+                // Controller rays are slightly curved: tilt the device until its own ray lands on the tab, as a player would.
+                var device=ray.transform.parent!=null?ray.transform.parent:ray.transform; var origins=device.GetComponentsInChildren<Transform>(true).Where(t=>t.name.Contains("Stabilized") || t.name.Contains("Aim") || t.name.Contains("Attach")).ToArray();
+                bool OnTab(out string name) { name=ray.TryGetCurrentUIRaycastResult(out var r)?r.gameObject.name:"nothing"; return r.gameObject!=null && r.gameObject.transform.IsChildOf(tab.transform); }
+                for(var pitch=0f;pitch<=12f && !OnTab(out _);pitch+=1.5f)
+                {
+                    var tilted=look*Quaternion.Euler(-pitch,0,0);
+                    device.SetPositionAndRotation(from,tilted); ray.transform.SetPositionAndRotation(from,tilted);
+                    foreach(var t in origins) t.SetPositionAndRotation(from,tilted);
+                    if(ray.farInteractionCaster is InteractionCasterBase c3 && c3.castOrigin!=null) c3.castOrigin.SetPositionAndRotation(from,tilted);
+                    for(var i=0;i<3;i++) yield return null;
+                }
+                OnTab(out var hit);
                 strength=1; state.Step(1,1,null,null,tab.gameObject); yield return null; yield return null;
                 strength=0; state.Step(0,2,null,null,tab.gameObject); yield return null; yield return null;
                 var origin=ray.farInteractionCaster is InteractionCasterBase c2 && c2.effectiveCastOrigin!=null?c2.effectiveCastOrigin:ray.transform;

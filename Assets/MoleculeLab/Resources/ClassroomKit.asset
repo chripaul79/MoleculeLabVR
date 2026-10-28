@@ -43,6 +43,9 @@ MonoBehaviour:
   labWaterShelf: {fileID: 2721261975605995626, guid: 015d07e8f9746c94eb8cd53e5b0964ab, type: 3}
   woodMaterial: {fileID: 2100000, guid: bf1b930b1fba9db409872196db946d5c, type: 2}
   metalMaterial: {fileID: 2100000, guid: 935190269a0097e468613dae1055aa8f, type: 2}
+  toolFlame: {fileID: 3438127250079161632, guid: ff25b715f02cfd947b8608c3d7de53c9, type: 3}
+  toolCatalyst: {fileID: 1059233709886090257, guid: f5d155c20147ddb4f9d7e882cbbc3518, type: 3}
+  toolAcid: {fileID: 919132149155446097, guid: 962eb04bf1b1e724dbb40dbd73d26af1, type: 3}
   scifiWall: {fileID: 100014, guid: ac93356612ce24c718977a61ed7246de, type: 3}
   scifiWallAlt: {fileID: 100002, guid: a27242662722e417d9fe08ebbf85eb51, type: 3}
   scifiFloor: {fileID: 100002, guid: be50ff3ed2fbe44349a64d3ac5fb98ee, type: 3}

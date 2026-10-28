@@ -207,6 +207,36 @@ namespace MoleculeLab.Tests
             yield return new ExitPlayMode();
         }
 
+        [UnityTest]
+        public IEnumerator ReactionStationRunsWithTheRightTool()
+        {
+            EditorSceneManager.OpenScene("Assets/Scenes/MoleculeLab.unity");
+            yield return new EnterPlayMode(); yield return null;
+            var lab=Object.FindAnyObjectByType<LabController>(); for(var startWait=EditorApplication.timeSinceStartup+10;!lab.Ready && EditorApplication.timeSinceStartup<startWait;) yield return null;
+            lab.seedTransferDuration=0; lab.UseGalleryFile(null); lab.ResetLab(); yield return null;
+            Assert.That(lab.Station,Is.Not.Null); Assert.That(lab.Station.Tools.Count,Is.EqualTo(3));
+            Assert.That(lab.ReactionStatus(),Does.Contain("Drop finished molecules"));
+            // Start from a different reaction: the vessel switches by itself when hydrogen goes in.
+            lab.SelectReaction(lab.reactions.First(r=>r.requiredCondition==ReactionCondition.Ignition && r.inputs.Any(p=>p.molecule.id=="methane")));
+            var molecules=new[]{Assemble(lab,"hydrogen"),Assemble(lab,"hydrogen"),Assemble(lab,"oxygen")};
+            foreach(var view in molecules) { view.transform.position=lab.Environment.tray.position+Vector3.up*.2f; lab.MoleculeReleased(view); Assert.That(view.Docked,Is.True,view.Definition.id); }
+            Assert.That(lab.ActiveReaction.inputs.Any(p=>p.molecule.id=="hydrogen"),Is.True,"Switched to the water reaction.");
+            Assert.That(lab.ReactionStatus(),Does.Contain("FLAME"));
+            // The wrong tool explains itself and does nothing.
+            lab.Station.Tools.First(t=>t.Condition==ReactionCondition.PalladiumCatalyst).UseOnVessel();
+            Assert.That(lab.IsReacting,Is.False); Assert.That(lab.Station.Label.text,Does.Contain("needs the FLAME"));
+            // The flame runs it: atoms rearrange into two waters.
+            lab.Station.Tools.First(t=>t.Condition==ReactionCondition.Ignition).UseOnVessel();
+            Assert.That(lab.IsReacting,Is.True);
+            for(var deadline=EditorApplication.timeSinceStartup+8;lab.IsReacting && EditorApplication.timeSinceStartup<deadline;) yield return null;
+            yield return null;
+            Assert.That(Object.FindObjectsByType<MoleculeView>().Count(v=>v.Definition.id=="water"),Is.EqualTo(2));
+            // A molecule no reaction uses is refused with a message.
+            var ethane=Assemble(lab,"ethane"); ethane.transform.position=lab.Environment.tray.position+Vector3.up*.2f; lab.MoleculeReleased(ethane);
+            Assert.That(ethane.Docked,Is.False); Assert.That(lab.Station.Label.text,Does.Contain("No reaction"));
+            yield return new ExitPlayMode();
+        }
+
         sealed class FakeInfo : IMoleculeInfoSource
         {
             public int Calls;

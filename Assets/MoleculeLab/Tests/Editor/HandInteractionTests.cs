@@ -66,8 +66,9 @@ namespace MoleculeLab.Tests
                 // Edit-mode fixtures do not invoke the runtime OnEnable registry hooks.
                 LooseAtom.Active.Add(atomA); LooseAtom.Active.Add(atomB);
                 var owner=root.AddComponent<HandMenuRay>(); var caster=root.AddComponent<HandAtomCaster>(); caster.owner=owner; caster.fallback=new TestCaster { castOrigin=root.transform };
-                root.transform.position=Vector3.left*.067f; Assert.That(caster.FindAtom(),Is.Null);
-                root.transform.position=Vector3.left*.065f; Assert.That(caster.FindAtom(),Is.SameAs(atomA));
+                // Reach is 4.5 cm beyond the atom's surface (radius 3.6 cm): 8.1 cm from its centre.
+                root.transform.position=Vector3.left*.083f; Assert.That(caster.FindAtom(),Is.Null);
+                root.transform.position=Vector3.left*.079f; Assert.That(caster.FindAtom(),Is.SameAs(atomA));
                 root.transform.position=Vector3.right*.048f; Assert.That(caster.FindAtom(),Is.SameAs(atomA),"Small target differences must not flicker");
                 root.transform.position=Vector3.right*.052f; Assert.That(caster.FindAtom(),Is.SameAs(atomB));
             }

@@ -25,13 +25,13 @@ namespace MoleculeLab
             var t=Rect(value,parent,p,size).gameObject.AddComponent<TextMeshProUGUI>(); t.text=value; if(font!=null)t.font=font;
             t.fontSize=fontSize; t.color=color; t.alignment=TextAlignmentOptions.Center; t.raycastTarget=false; return t;
         }
-        Button Button(Transform parent,string title,Vector2 p,Vector2 size,Action action)
+        Button Button(Transform parent,string title,Vector2 p,Vector2 size,Action action,float fontSize=28)
         {
             var r=Rect(title,parent,p,size); var image=r.gameObject.AddComponent<Image>(); image.color=new Color(.12f,.24f,.3f);
             var button=r.gameObject.AddComponent<Button>(); button.targetGraphic=image;
             var colors=button.colors; colors.highlightedColor=new Color(.5f,1,.85f); colors.pressedColor=new Color(.2f,.7f,.65f); button.colors=colors;
             button.navigation=new Navigation { mode=Navigation.Mode.None };
-            button.onClick.AddListener(()=>action()); Text(r,title,Vector2.zero,size-new Vector2(18,8),28,Color.white); return button;
+            button.onClick.AddListener(()=>action()); Text(r,title,Vector2.zero,size-new Vector2(18,8),fontSize,Color.white); return button;
         }
         void CreateUI()
         {
@@ -43,20 +43,19 @@ namespace MoleculeLab
             var panel=Rect("Panel",menuRoot,Vector2.zero,menuRoot.sizeDelta).gameObject.AddComponent<Image>(); panel.color=new Color(.025f,.055f,.085f); panel.raycastTarget=true;
             Text(menuRoot,"MOLECULE LAB",new Vector2(-470,555),new Vector2(800,80),48,new Color(.25f,.95f,.85f));
             modeText=Text(menuRoot,"BUILD MODE",new Vector2(480,555),new Vector2(650,60),28,Color.white);
-            string[] names={"BUILD","FREE BUILD","INSPECT","REACT","SETTINGS"};
-            LabMode[] tabModes={LabMode.Build,LabMode.Free,LabMode.Inspect,LabMode.React,LabMode.Build};
-            for(var i=0;i<names.Length;i++) { var tab=i; Button(menuRoot,names[i],new Vector2(-704+i*352,455),new Vector2(330,80),()=> { if(tab==names.Length-1) { settingsPage=true; RebuildMenu(); } else SetMode(tabModes[tab]); }); }
-            status=Text(menuRoot,"",new Vector2(0,-320),new Vector2(1670,130),27,Color.white);
-            // Physical controls replace the old bottom-row buttons: red button = reset, bins = keep or discard.
-            Text(menuRoot,"KEEP a molecule: drop it in the GALLERY hole on the bench.   DISCARD: drop it in the TRASH bin.   RESET: press the red button on the bench.",new Vector2(0,-440),new Vector2(1690,70),25,Color.white);
-            Text(menuRoot,"Grab: reach or point + pinch.  Menu: point, pinch, release.  Teleport: controller thumbstick.",new Vector2(0,-550),new Vector2(1690,70),23,new Color(.75f,.8f,.82f));
+            // Reactions happen at the vessel on the bench, so there is no REACT tab.
+            string[] names={"BUILD","FREE BUILD","INSPECT","SETTINGS"};
+            LabMode[] tabModes={LabMode.Build,LabMode.Free,LabMode.Inspect,LabMode.Build};
+            for(var i=0;i<names.Length;i++) { var tab=i; Button(menuRoot,names[i],new Vector2(-660+i*440,455),new Vector2(410,80),()=> { if(tab==names.Length-1) { settingsPage=true; RebuildMenu(); } else SetMode(tabModes[tab]); }); }
+            // Status line at the very bottom; the space above it holds the shortcut row (the old help lines are gone).
+            status=Text(menuRoot,"",new Vector2(0,-530),new Vector2(1690,120),30,Color.white);
             RebuildMenu();
         }
         void RebuildMenu()
         {
             if(menuRoot==null) return;
             if(pageObject!=null) { pageObject.SetActive(false); Destroy(pageObject); }
-            pageObject=Rect("Current menu page",menuRoot,Vector2.zero,new Vector2(1800,700)).gameObject;
+            pageObject=Rect("Current menu page",menuRoot,Vector2.zero,new Vector2(1800,900)).gameObject;
             var page=pageObject.transform; activateButton=null;
             lesson=Text(page,hints?instructions[lessonStep]:"Hints hidden. Essential placement feedback stays enabled.",new Vector2(430,265),new Vector2(780,170),26,Color.white);
             trayText=Text(page,"",new Vector2(430,60),new Vector2(780,160),26,Color.white);
@@ -78,7 +77,8 @@ namespace MoleculeLab
                 }
                 Button(page,"< Previous",new Vector2(-650,-200),new Vector2(350,80),()=>{moleculePage=Mathf.Max(0,moleculePage-1);RebuildMenu();});
                 Button(page,"Next >",new Vector2(-250,-200),new Vector2(350,80),()=>{moleculePage=Mathf.Min((molecules.Length-1)/4,moleculePage+1);RebuildMenu();});
-                energyText.text=$"Molecules: page {moleculePage+1}/{(molecules.Length+3)/4}\nChoose REACT for conditions and activation.";
+                energyText.text=$"Molecules: page {moleculePage+1}/{(molecules.Length+3)/4}\nReactions: put molecules in the vessel on the bench.";
+                ShortcutRow(page);
             }
             else if(Mode==LabMode.Free) BuildFreePage(page);
             else if(Mode==LabMode.Inspect)

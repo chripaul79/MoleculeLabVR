@@ -64,7 +64,7 @@ namespace MoleculeLab
         public NearFarInteractor direct;
         public Transform aim;
         [Header("Hand acquisition (metres / normalized pinch strength)")]
-        public float acquisitionDistance=.03f, targetSwitchMargin=.01f, pressThreshold=.8f, releaseThreshold=.6f, earlyPinchSeconds=.15f;
+        public float acquisitionDistance=.045f, targetSwitchMargin=.01f, pressThreshold=.72f, releaseThreshold=.5f, earlyPinchSeconds=.2f; // forgiving: hand tracking is noisy
         public bool showDiagnostics;
         public readonly HandPinchState Gesture=new HandPinchState();
         readonly List<XRHandSubsystem> systems=new List<XRHandSubsystem>();

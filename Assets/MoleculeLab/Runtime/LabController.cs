@@ -370,17 +370,23 @@ namespace MoleculeLab
                     Achieve("rejoin"); BondChanged?.Invoke(); Notify("Ethane restored: the C-C bond is rejoined.",true); return;
                 }
             }
-            if(reacting || ActiveReaction==null || !view.State.Complete || view.Grab.isSelected) return;
+            if(reacting || !view.State.Complete || view.Grab.isSelected) return;
             var delta=view.transform.position-tray.position;
             if(Mathf.Abs(delta.x)>.34f || Mathf.Abs(delta.z)>.35f || Mathf.Abs(delta.y)>.5f) return;
-            var requirement=ActiveReaction.inputs.FirstOrDefault(p=>p.molecule==view.Definition);
-            if(requirement.molecule==null) { Notify("This reaction does not use "+view.Definition.displayName+". Check its input list."); return; }
+            // The vessel works out the reaction from what is in it: keep the current one if it still fits, else switch.
             var docked=views.Where(v=>v.Docked && v!=view).ToArray();
-            if(docked.Count(v=>v.Definition==view.Definition)>=requirement.count) { Notify("Enough "+view.Definition.formula+" is already docked."); return; }
+            var chosen=ChooseReaction(docked.Select(v=>v.Definition).Append(view.Definition));
+            if(chosen==null)
+            {
+                var message=docked.Length==0?"No reaction in this lab uses "+view.Definition.displayName+".":view.Definition.displayName+" does not react with what is already in the vessel.";
+                Notify(message); Station?.Flash(message); return;
+            }
+            if(chosen!=ActiveReaction) { ActiveReaction=chosen; SelectedCondition=ReactionCondition.None; RebuildMenu(); }
+            var requirement=ActiveReaction.inputs.First(p=>p.molecule==view.Definition);
             var count=ActiveReaction.inputs.Sum(p=>p.count);
             var slot=Enumerable.Range(0,count).First(i=>!docked.Any(v=>Vector3.Distance(v.transform.position,TraySlot(i))<.03f));
             view.transform.localScale=Vector3.one*.4f; view.transform.position=TraySlot(slot); view.Docked=true; UpdateTray();
-            Notify("Docked "+view.Definition.formula+". Follow the reaction checklist.");
+            Notify("Docked "+view.Definition.formula+". Follow the reaction checklist."); Station?.Refresh();
         }
         Vector3 TraySlot(int index) => tray.position+new Vector3(0,.15f,-.19f+index*.19f);
         public void SelectReaction(ReactionDefinition reaction)
@@ -404,14 +410,14 @@ namespace MoleculeLab
         {
             if(trayText==null) return;
             if(Mode==LabMode.Free && !settingsPage) { trayText.text=FreeStatusText(); return; }
-            if(ActiveReaction==null) { trayText.text="REACT: choose a reaction to see its input checklist."; return; }
+            if(ActiveReaction==null) { trayText.text="Reactions: drop finished molecules in the vessel on the bench."; return; }
             var docked=views.Where(v=>v.Docked && !v.Grab.isSelected).ToArray();
             trayText.text=ActiveReaction.equation+"\n"+string.Join("   ",ActiveReaction.inputs.Select(p=>$"{docked.Count(v=>v.Definition==p.molecule)}/{p.count} {p.molecule.formula}"))+"\nCondition: "+ConditionName(SelectedCondition);
             if(activateButton!=null) activateButton.interactable=CanActivate(out _);
         }
         public void ActivateReaction()
         {
-            if(Mode!=LabMode.React || reacting) { Notify("Switch to React mode to activate the tray."); return; }
+            if(reacting) return; // started by a tool over the vessel (or the REACT page); any mode
             var input=views.Where(v=>v.Docked && !v.Grab.isSelected).ToArray();
             if(ActiveReaction==null) { Notify("Choose a reaction first."); return; }
             if(!ReactionEngine.TryReact(ActiveReaction,input.Select(v=>v.State).ToArray(),out var products,out var reason,SelectedCondition)) { Notify(reason); return; }

@@ -391,12 +391,58 @@ namespace MoleculeLab
         }
         void BuildFreePage(Transform page)
         {
-            // Three always-working shortcuts; everything else is done by hand.
-            Button(page,"Fill hydrogens",new Vector2(-450,300),new Vector2(760,90),FillHydrogens);
-            Button(page,"Undo last atom",new Vector2(-450,175),new Vector2(760,90),UndoFreeAtom);
-            Button(page,"Clear structure",new Vector2(-450,50),new Vector2(760,90),()=>ClearFreeStructure(true));
-            lesson.text=hints?FreeInstructions:"Hints hidden. Placement feedback stays enabled.";
+            // Big, readable steps where the recipe list sits in BUILD; the same shortcut row as BUILD underneath.
+            var steps=Text(page,"<b>FREE BUILD</b>\n\n1  Take any atom from a beaker\n2  Drop it on the teal ring\n3  Hold more atoms on the dots and let go\n4  Push two atoms together: double bond or ring\n5  Pull an end atom away to remove it",
+                new Vector2(-450,120),new Vector2(800,520),32,Color.white);
+            steps.alignment=TMPro.TextAlignmentOptions.TopLeft;
+            lesson.text=hints?"Every finished structure is checked in PubChem automatically and gets its real name.":"Hints hidden. Placement feedback stays enabled.";
             energyText.text="";
+            ShortcutRow(page);
+        }
+        /// <summary>The same three large shortcuts in BUILD and FREE BUILD, in the same place.</summary>
+        void ShortcutRow(Transform page)
+        {
+            Button(page,"Fill hydrogens",new Vector2(-575,-360),new Vector2(540,130),FillHydrogensAnyMode,34);
+            Button(page,"Undo last atom",new Vector2(0,-360),new Vector2(540,130),UndoAnyMode,34);
+            Button(page,"Clear structure",new Vector2(575,-360),new Vector2(540,130),ClearAnyMode,34);
+        }
+        public void FillHydrogensAnyMode() { if(Mode==LabMode.Free) FillHydrogens(); else FillRecipeHydrogens(); }
+        public void UndoAnyMode() { if(Mode==LabMode.Free) UndoFreeAtom(); else UndoRecipeAtom(); }
+        public void ClearAnyMode()
+        {
+            if(Mode==LabMode.Free) { ClearFreeStructure(true); return; }
+            var unfinished=Selected!=null && !Selected.State.Complete?Selected:views.LastOrDefault(v=>!v.State.Complete);
+            if(unfinished==null) { Notify("Nothing to clear: finished molecules go in the GALLERY hole or the TRASH bin."); return; }
+            CancelInteractions(); Recycle(unfinished); UpdateTray(); Notify("Structure cleared.");
+        }
+        /// <summary>BUILD: puts a hydrogen on every open hydrogen site of the recipe being built (repeats while new sites open up).</summary>
+        public void FillRecipeHydrogens()
+        {
+            var view=Selected!=null && !Selected.State.Complete?Selected:views.LastOrDefault(v=>!v.State.Complete);
+            if(view==null) { Notify("Choose a recipe first; Fill hydrogens completes its hydrogens."); return; }
+            var added=0;
+            for(var pass=0;pass<8;pass++)
+            {
+                var progress=false;
+                for(var site=0;site<view.Definition.atoms.Length;site++)
+                {
+                    if(view.State.IsOccupied(site) || view.Definition.atoms[site].element==null || view.Definition.atoms[site].element.symbol!="H") continue;
+                    var atom=loose.FirstOrDefault(a=>a!=null && a.OnShelf && a.Element!=null && a.Element.symbol=="H"); if(atom==null) break;
+                    var home=atom.transform.position; atom.transform.position=view.SitePosition(site);
+                    if(TryAttach(atom)) { added++; progress=true; } else atom.transform.position=home;
+                }
+                if(!progress || view==null || view.State.Complete) break;
+            }
+            Notify(added==0?"No hydrogen fits yet: place the heavier atoms first.":added+" hydrogen"+(added==1?"":"s")+" added.",added>0);
+        }
+        /// <summary>BUILD: takes the most recently placed atom off the recipe (the seed atom stays).</summary>
+        public void UndoRecipeAtom()
+        {
+            var view=Selected!=null && !Selected.State.Complete?Selected:views.LastOrDefault(v=>!v.State.Complete);
+            if(view==null) { Notify("Nothing to undo."); return; }
+            if(!view.TryRemoveLastAtom(out var token)) { Notify("Only the starting atom is left; use Clear structure to remove it."); return; }
+            if(token>=0 && Inventory.Transfer(token,view.InventoryOwner,AtomInventory.Shelf)) SpawnShelfAtom(token);
+            RefreshStock(); Notify("Last atom removed.");
         }
     }
 }

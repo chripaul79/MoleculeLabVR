@@ -67,9 +67,9 @@ namespace MoleculeLab
                         socket.localPosition=AtomSpots[i%AtomSpots.Length]; sockets.Add(socket); symbols.Add(element.symbol);
                     }
                     // Name plate on the shelf in front of the beaker, tilted up so it reads from standing height without covering the atoms.
-                    var label=LabVisuals.Label(beaker,"<b>"+element.symbol+"</b>  <size=70%>"+element.displayName+"</size>",new Vector3(0,.02f,-BeakerRadius-.04f),.034f);
+                    var label=LabVisuals.Label(beaker,"<b>"+element.symbol+"</b>  <size=70%>"+element.displayName+"</size>",new Vector3(0,.004f,-BeakerRadius-.045f),.034f);
                     var face=label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
-                    label.transform.localRotation=Quaternion.Euler(50,0,0);
+                    label.transform.localRotation=Quaternion.Euler(90,0,0); // flat on the table, like the other table text
                     label.rectTransform.sizeDelta=new Vector2(.28f,.06f);
                     label.color=onTable?Color.white:new Color(.1f,.14f,.2f); // readable on the wooden table / the light shelf
                     if(onTable) { label.outlineWidth=.25f; label.outlineColor=new Color32(30,20,10,255); }
@@ -101,6 +101,9 @@ namespace MoleculeLab
             var scale=new Vector3(size.x/bounds.size.x,size.y/bounds.size.y,size.z/bounds.size.z);
             scaler.localScale=scale; scaler.localPosition=new Vector3(-bounds.center.x*scale.x,-bounds.min.y*scale.y,-bounds.center.z*scale.z);
             var box=holder.gameObject.AddComponent<BoxCollider>(); box.center=new Vector3(0,size.y*.5f,0); box.size=size;
+            // The table is seen from all sides: draw back faces too (the pack's drawer units are open at the back).
+            foreach(var r in model.GetComponentsInChildren<Renderer>(true))
+                foreach(var m in r.materials) if(m.renderQueue<2500 && m.HasProperty("_Cull")) { m.SetFloat("_Cull",0); m.doubleSidedGI=true; }
             return holder;
         }
         /// <summary>See-through glass: an unlit transparent canvas material (always present in builds that use UI) on a cylinder.</summary>

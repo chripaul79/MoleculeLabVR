@@ -20,6 +20,15 @@ namespace MoleculeLab
             occupied = Enumerable.Repeat(complete, definition.atoms.Length).ToArray();
             occupied[definition.seedIndex] = true;
         }
+        readonly System.Collections.Generic.List<int> placedOrder = new System.Collections.Generic.List<int>();
+        /// <summary>Takes off the atom placed last (always safe: every later atom needed an earlier neighbour). The seed stays.</summary>
+        public bool TryRemoveLast(out int site)
+        {
+            site = -1;
+            if (Consumed || placedOrder.Count == 0) return false;
+            site = placedOrder[placedOrder.Count - 1]; placedOrder.RemoveAt(placedOrder.Count - 1);
+            occupied[site] = false; BondChanged?.Invoke(); return true;
+        }
         public bool IsOccupied(int index) => index >= 0 && index < occupied.Length && occupied[index];
         public bool CanPlace(int site, ElementDefinition element, out string reason)
         {
@@ -34,7 +43,7 @@ namespace MoleculeLab
         public bool TryPlace(int site, ElementDefinition element, out string reason)
         {
             if (!CanPlace(site, element, out reason)) return false;
-            occupied[site] = true;
+            occupied[site] = true; placedOrder.Add(site);
             if (Complete) Completed?.Invoke();
             return true;
         }

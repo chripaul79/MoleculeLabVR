@@ -34,6 +34,7 @@ namespace MoleculeLab.Editor
             {"canister",D+"Props/Prefabs/SM_Canister1.prefab"},{"scifiBox",D+"Props/Prefabs/SM_Box1.prefab"},
             {"sideLight",C+"Lights/Light_SideLight_01.prefab"},
             {"labWall",L+"wall01.prefab"},{"labFloor",L+"floor.prefab"},{"labRoof",L+"roof.prefab"},
+            {"toolFlame",L+"Spirit_Lamp with water.prefab"},{"toolCatalyst",L+"crucible_and_cover.prefab"},{"toolAcid",LabPack+"/Models/Glass_medical_dropper.fbx"},
             {"labShelf",L+"shelf.prefab"},{"labWaterShelf",L+"water Shelf.prefab"},
             {"woodMaterial",LabPack+"/Materials/Laboratory03_Wood_BaseMap.mat"},{"metalMaterial",LabPack+"/Materials/Laboratory03_Others_BaseMap.mat"},{"labSign",C+"Symbols/Word_Lab.prefab"},
             {"floorTiles",LabPack+"/Textures/Laboratory03_Floor_BaseMap.png"},{"floorNormal",LabPack+"/Textures/Laboratory03_Floor_Normal.png"},

@@ -95,6 +95,12 @@ namespace MoleculeLab
             }
             return -1;
         }
+        public bool TryRemoveLastAtom(out int token)
+        {
+            token=-1;
+            if(State==null || State.Complete || !State.TryRemoveLast(out var site)) return false;
+            token=TokenIds[site]; TokenIds[site]=-1; Refresh(); return true;
+        }
         public void AnimateSite(int site,Vector3 start) { snapFrom[site]=transform.InverseTransformPoint(start); snapTime[site]=.12f; }
         public void ShowGeometry(bool show)
         {
