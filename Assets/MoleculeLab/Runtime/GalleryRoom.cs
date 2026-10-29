@@ -112,6 +112,9 @@ namespace MoleculeLab
         public GalleryEntry Entry { get; private set; }
         public XRGrabInteractable Grab { get; private set; }
         Transform model;
+        SphereCollider grabZone;
+        /// <summary>The single collider used to pick the exhibit up.</summary>
+        public SphereCollider GrabZone => grabZone;
         TextMeshPro label;
         LabController lab;
         Vector3 slot;
@@ -144,12 +147,15 @@ namespace MoleculeLab
                 }
             }
             // Fit every exhibit inside its 0.5 m stand spacing.
-            transform.localScale=Vector3.one*Mathf.Min(1,.15f/extent);
+            var scale=Mathf.Min(1,.15f/extent); transform.localScale=Vector3.one*scale;
+            // One generous, still grab target around the whole model: the small atoms turn slowly and were hard to pinch.
+            foreach(var c in model.GetComponentsInChildren<Collider>()) c.enabled=false;
+            grabZone=gameObject.AddComponent<SphereCollider>(); grabZone.radius=extent+.035f/scale;
             var body=gameObject.AddComponent<Rigidbody>(); body.isKinematic=true; body.useGravity=false;
             Grab=gameObject.AddComponent<XRGrabInteractable>();
+            Grab.colliders.Clear(); Grab.colliders.Add(grabZone); Grab.enabled=false; Grab.enabled=true; // register only the grab zone
             // Instantaneous: the exhibit stays exactly in the hand (velocity tracking could be held back by the table and stand).
             Grab.throwOnDetach=false; Grab.movementType=XRBaseInteractable.MovementType.Instantaneous; Grab.useDynamicAttach=true;
-            foreach(var c in GetComponentsInChildren<Collider>()) c.isTrigger=false;
             Grab.firstSelectEntered.AddListener(_=>{ if(lab!=null) lab.ExhibitGrabbed(this); });
             Grab.lastSelectExited.AddListener(_=>{ if(lab!=null) lab.ExhibitReleased(this); });
             label=LabVisuals.Label(transform.parent,"",Vector3.zero,.024f); label.rectTransform.sizeDelta=new Vector2(.46f,.12f);

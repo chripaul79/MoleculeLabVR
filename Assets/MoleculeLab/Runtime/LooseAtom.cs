@@ -10,6 +10,7 @@ namespace MoleculeLab
         public ElementDefinition Element { get; private set; }
         public XRGrabInteractable Grab { get; private set; }
         public Rigidbody Body { get; private set; }
+        Collider ownCollider;
         public int TokenId { get; private set; }
         public string Owner => "loose:"+TokenId;
         public bool OnShelf { get; private set; } = true;
@@ -33,7 +34,7 @@ namespace MoleculeLab
             // Small atoms keep a comfortable grab target: at least 3 cm radius, whatever their visible size.
             GetComponent<SphereCollider>().radius=Mathf.Max(.5f,.03f/Mathf.Max(.001f,transform.localScale.x));
             // Loose atoms pass through each other, so a crowded basket never jams a grab or a refill.
-            var own=GetComponent<Collider>();
+            var own=GetComponent<Collider>(); ownCollider=own;
             foreach(var other in Active) if(other!=this && other!=null) { var collider=other.GetComponent<Collider>(); if(collider!=null) Physics.IgnoreCollision(own,collider); }
             Grab.firstSelectEntered.AddListener(_=>{ ReleasedAt=-1; TakeFromShelf(); });
             Grab.lastSelectExited.AddListener(_=>MarkReleased());
@@ -92,7 +93,7 @@ namespace MoleculeLab
         {
             if(lab==null || Grab==null) return;
             if(!Grab.isSelected) Fall(!OnShelf);
-            if(Grab.isSelected) lab.PreviewAtom(this);
+            if(Grab.isSelected) { lab.IgnoreBuildCollisions(ownCollider); lab.PreviewAtom(this); }
             else if(!OnShelf && (transform.position.y<.3f || transform.position.magnitude>12)) ReturnHome();
             // An atom taken from a beaker and left unused for a while disappears (the beaker is endless).
             else if(!OnShelf && ReleasedAt>0 && Time.time-ReleasedAt>lab.idleAtomSeconds) ReturnHome();

@@ -262,6 +262,17 @@ namespace MoleculeLab.Tests
             Assert.That(lab.CopyExhibitIntoVessel(lab.Gallery.Entries.First(e=>e.id=="water")),Is.True);
             Assert.That(Object.FindObjectsByType<MoleculeView>().Count(v=>v.Docked && v.Definition.id=="water"),Is.EqualTo(1));
             yield return null; AssertInventory(lab);
+
+            // The button on the reaction table empties the vessel; the atoms go back to the beakers.
+            Assert.That(lab.VesselReset,Is.Not.Null); lab.VesselReset.Fire(); yield return null;
+            Assert.That(Object.FindObjectsByType<MoleculeView>().Count(v=>v.Docked),Is.Zero); AssertInventory(lab);
+
+            // Fill hydrogens on a molecule lying on the bench: it is lifted, so no hydrogen ends up inside the bench.
+            lab.StartMolecule(lab.molecules.First(m=>m.id=="methane")); var methane=lab.Selected;
+            for(var deadline=EditorApplication.timeSinceStartup+1;EditorApplication.timeSinceStartup<deadline;) yield return null;
+            lab.FillHydrogensAnyMode(); Assert.That(methane.State.Complete,Is.True,"Fill hydrogens completes methane in one press.");
+            Assert.That(Enumerable.Range(0,5).Min(i=>methane.SitePosition(i).y-methane.SiteRadius(i)),Is.GreaterThan(lab.BenchTop-.01f));
+            yield return null; AssertInventory(lab);
             yield return new ExitPlayMode();
         }
 
@@ -287,6 +298,9 @@ namespace MoleculeLab.Tests
             lab.MoleculeInfoSource=info; lab.hologramLinger=.2f; lab.UseGalleryFile(null); lab.ResetLab(); yield return null;
             lab.MoleculeIntoBin(Assemble(lab,"water"),true); yield return null;
             var exhibit=lab.GalleryRoom.Exhibits.First();
+            // One generous grab target per exhibit, not the small turning atoms.
+            Assert.That(exhibit.Grab.colliders,Is.EqualTo(new Collider[]{exhibit.GrabZone}));
+            Assert.That(exhibit.GrabZone.radius*exhibit.transform.lossyScale.x,Is.GreaterThan(.08f));
             Assert.That(lab.Hologram.Visible,Is.False);
 
             lab.ExhibitGrabbed(exhibit);

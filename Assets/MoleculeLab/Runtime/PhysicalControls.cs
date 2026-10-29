@@ -28,11 +28,15 @@ namespace MoleculeLab
         /// <summary>Cap top when not pressed, in world space.</summary>
         public Vector3 CapTop => transform.TransformPoint(new Vector3(0,.06f,0));
 
-        public static ResetButton Create(Transform bench,LabController lab,Vector3 localPosition)
+        System.Action onPress;
+        string text="RESET LAB\npush or point";
+        public static ResetButton Create(Transform bench,LabController lab,Vector3 localPosition) => Create(bench,lab,localPosition,null,null,"Reset button (runtime)");
+        /// <summary>The same push button with its own label and action (for example emptying the reaction vessel).</summary>
+        public static ResetButton Create(Transform parent,LabController lab,Vector3 localPosition,string text,System.Action onPress,string name)
         {
-            var go=new GameObject("Reset button (runtime)"); go.transform.SetParent(bench,false);
+            var go=new GameObject(name); go.transform.SetParent(parent,false);
             go.transform.localPosition=localPosition;
-            var button=go.AddComponent<ResetButton>(); button.lab=lab; button.Build(); return button;
+            var button=go.AddComponent<ResetButton>(); button.lab=lab; button.onPress=onPress; if(text!=null) button.text=text; button.Build(); return button;
         }
         void Build()
         {
@@ -45,7 +49,7 @@ namespace MoleculeLab
                 // Pressed up close or with a ray from a distance: either way it resets, and the cap visibly goes down.
                 pressedUntil=Time.time+.35f; Fire();
             });
-            var label=LabVisuals.Label(transform,"RESET LAB\npush or point",new Vector3(0,.13f,.07f),.02f);
+            var label=LabVisuals.Label(transform,text,new Vector3(0,.13f,.07f),.02f);
             var face=label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
             label.color=Color.white;
         }
@@ -83,7 +87,7 @@ namespace MoleculeLab
         {
             if(!armed || lab==null) return;
             armed=false; Presses++; heldFor=0;
-            lab.ResetFromButton();
+            if(onPress!=null) onPress(); else lab.ResetFromButton();
         }
         void Update()
         {

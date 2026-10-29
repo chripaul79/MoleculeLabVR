@@ -65,6 +65,8 @@ namespace MoleculeLab
         /// <summary>Grabbing a bond (stick) carries the whole structure; grabbing an atom moves only that atom.</summary>
         public XRGrabInteractable Carry { get; private set; }
         float fallSpeed;
+        /// <summary>Structure atoms currently held (one per hand); none of them is moved by the view while held.</summary>
+        readonly HashSet<int> held=new HashSet<int>();
 
         public void Initialize(LabController owner)
         {
@@ -84,11 +86,11 @@ namespace MoleculeLab
         void UpdateCarryColliders()
         {
             if(Carry==null) return;
-            var held=Carry.isSelected;
-            if(!held) Carry.enabled=false;
+            var carried=Carry.isSelected;
+            if(!carried) Carry.enabled=false;
             Carry.colliders.Clear();
             foreach(var set in bondShapes) foreach(var shape in set) { var c=shape!=null?shape.GetComponent<Collider>():null; if(c!=null) Carry.colliders.Add(c); }
-            if(!held) Carry.enabled=Carry.colliders.Count>0; // re-registers the colliders with the interaction manager
+            if(!carried) Carry.enabled=Carry.colliders.Count>0; // re-registers the colliders with the interaction manager
         }
         LineRenderer Line(string name,int points,float width)
         {
@@ -198,21 +200,24 @@ namespace MoleculeLab
                 if(grab==null || grab.interactionManager==null) continue;
                 foreach(var interactor in grab.interactorsSelecting.ToArray()) grab.interactionManager.SelectCancel(interactor,grab);
             }
-            dragging=-1;
+            held.Clear(); dragging=-1;
         }
 
         // ---------- grabbing structure atoms ----------
         public void BeginDrag(int atom)
         {
             if(Locked || atom<0 || atom>=Structure.Count) return;
-            dragging=atom; ClearPreview();
+            held.Add(atom); dragging=atom; ClearPreview();
         }
         public void EndDrag(int atom,bool commit)
         {
-            if(dragging!=atom) return;
+            if(!held.Remove(atom) && dragging!=atom) return;
             pendingGesture=FreeGesture.None; pendingAtom=atom; pendingPartner=-1;
             if(commit && EvaluateGesture(atom,out var gesture,out var partner,out var ready,out _) && ready) { pendingGesture=gesture; pendingPartner=partner; }
-            dragging=-1; HidePreviewLines(); releasePending=true; centroidExclude=atom;
+            // The other hand may still hold an atom of this structure: it carries on being dragged.
+            dragging=held.Count>0?held.First():-1;
+            if(dragging<0) HidePreviewLines();
+            releasePending=true; centroidExclude=atom;
         }
         /// <summary>
         /// Decides what releasing a held structure atom would do. Pulled far from its only neighbour: remove it.
@@ -358,10 +363,11 @@ namespace MoleculeLab
                 centroidExclude=-1;
                 if(this==null || Structure.Count==0) return;
             }
+            // XRI unparents a grabbed object while it is held, so read its world position, not localPosition.
+            foreach(var atom in held)
+                if(atom>=0 && atom<atomShapes.Count) { var local=transform.InverseTransformPoint(atomShapes[atom].position); Structure.SetPosition(atom,local); shown[atom]=local; }
             if(dragging>=0 && dragging<atomShapes.Count)
             {
-                // XRI unparents a grabbed object while it is held, so read its world position, not localPosition.
-                var held=transform.InverseTransformPoint(atomShapes[dragging].position); Structure.SetPosition(dragging,held); shown[dragging]=held;
                 if(EvaluateGesture(dragging,out var gesture,out var partner,out var ready,out var text))
                     DrawPreview(atomShapes[dragging].position,partner>=0?atomShapes[partner].position:transform.position,ready,text);
                 else HidePreviewLines();
@@ -369,7 +375,7 @@ namespace MoleculeLab
             var blend=1-Mathf.Exp(-Time.deltaTime*12);
             for(var i=0;i<atomShapes.Count;i++)
             {
-                if(i==dragging) continue;
+                if(held.Contains(i)) continue;
                 shown[i]=Vector3.Lerp(shown[i],Structure.Position(i),blend); atomShapes[i].localPosition=shown[i];
             }
             Settle();
@@ -385,14 +391,26 @@ namespace MoleculeLab
         /// </summary>
         void Settle()
         {
-            if(Carry!=null && Carry.isSelected || dragging>=0 || atomShapes.Count==0) { fallSpeed=0; return; }
-            var gap=float.MaxValue;
-            for(var i=0;i<atomShapes.Count;i++) gap=Mathf.Min(gap,SupportGap(transform.TransformPoint(shown[i]),atomShapes[i].lossyScale.y*.5f));
+            if(Carry!=null && Carry.isSelected || dragging>=0 || held.Count>0 || atomShapes.Count==0) { fallSpeed=0; return; }
+            var gap=Gap();
             if(gap<-.0005f) { transform.position+=Vector3.up*(-gap*(1-Mathf.Exp(-Time.deltaTime*12))); fallSpeed=0; return; }
             if(gap<=.0005f) { fallSpeed=0; return; }
             fallSpeed=Mathf.Min(fallSpeed+9.81f*Time.deltaTime,5f);
             transform.position+=Vector3.down*Mathf.Min(gap,fallSpeed*Time.deltaTime);
             if(transform.position.y<.3f) { transform.position=lab.FreeBuildPosition; fallSpeed=0; lab.Notify("The structure fell off and was put back on the bench."); }
+        }
+        /// <summary>Where atoms are going (not where they are shown flying in from a beaker): the lowest gap under any of them.</summary>
+        float Gap()
+        {
+            var gap=float.MaxValue;
+            for(var i=0;i<atomShapes.Count;i++) gap=Mathf.Min(gap,SupportGap(transform.TransformPoint(Structure.Position(i)),atomShapes[i].lossyScale.y*.5f));
+            return gap;
+        }
+        /// <summary>Lifts the structure at once if any atom would sit inside the surface below (for example after Fill hydrogens).</summary>
+        public void LiftClear()
+        {
+            if(atomShapes.Count==0 || Carry!=null && Carry.isSelected) return;
+            var gap=Gap(); if(gap<0) { transform.position+=Vector3.up*(-gap+.002f); fallSpeed=0; }
         }
         static readonly RaycastHit[] supportHits=new RaycastHit[24];
         /// <summary>Distance an atom can fall before it touches something solid (negative: it is already sunk in).</summary>

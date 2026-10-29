@@ -69,6 +69,15 @@ namespace MoleculeLab
         void OnDestroy() { if (State != null) State.Completed -= OnCompleted; }
         void OnCompleted() { Refresh(); lab.MoleculeCompleted(this); }
         public Vector3 SitePosition(int i) => atomShapes[i].position;
+        /// <summary>Visible radius of the atom at site i (world space).</summary>
+        public float SiteRadius(int i) => Definition.atoms[i].element.radius * LabVisuals.AtomScale * transform.lossyScale.x;
+        /// <summary>Moves the molecule up by <paramref name="height"/> and keeps physics in step (used to lift it clear of the bench).</summary>
+        public void Lift(float height)
+        {
+            if (height <= 0) return;
+            StopMotion(); transform.position += Vector3.up * height;
+            if (Body != null) { Body.position = transform.position; }
+        }
         public void Refresh()
         {
             for (var i = 0; i < atomShapes.Length; i++)
@@ -81,6 +90,8 @@ namespace MoleculeLab
                 atomShapes[i].localScale = Vector3.one * element.radius * LabVisuals.AtomScale * (occupied ? 2f : 1f);
             }
             Grab.enabled = !State.Consumed;
+            // Two hands on a finished molecule scale it; a half-built one is held by one hand at a time (the other hand passes it over).
+            Grab.selectMode = State.Complete ? InteractableSelectMode.Multiple : InteractableSelectMode.Single;
             ApplyPhysics();
             if(aromaticCircle!=null) aromaticCircle.enabled=Definition.aromaticRing.All(State.IsOccupied);
             label.text = Definition.displayName + "  " + Definition.formula;

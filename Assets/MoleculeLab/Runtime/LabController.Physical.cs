@@ -37,6 +37,28 @@ namespace MoleculeLab
                 foreach(var t in bench.GetComponentsInChildren<TMPro.TMP_Text>(true)) if(t.text.Trim()=="REACTION TRAY" || t.text.Trim()=="REACTION VESSEL") t.gameObject.SetActive(false);
             }
             tray=Station.Anchor; Environment.tray=Station.Anchor;
+            // A push button on the reaction table that empties the vessel (the rest of the lab is left alone).
+            VesselReset=ResetButton.Create(Station.transform,this,new Vector3(.43f,0,-.2f),"EMPTY VESSEL\npush or point",EmptyVessel,"Vessel reset button (runtime)");
+        }
+        public ResetButton VesselReset { get; private set; }
+        /// <summary>Everything in the vessel or lying on the reaction table goes back to the beakers.</summary>
+        public void EmptyVessel()
+        {
+            if(reacting) { Station?.Flash("Wait for the reaction to finish."); return; }
+            if(autoReaction!=null) { StopCoroutine(autoReaction); autoReaction=null; }
+            var onTable=views.Where(v=>v!=null && !v.Grab.isSelected && (v.Docked || OnReactionTable(v.transform.position))).ToArray();
+            CancelInteractions();
+            foreach(var view in onTable) if(views.Contains(view)) Recycle(view);
+            ActiveReaction=waterReaction; SelectedCondition=ReactionCondition.None; statusText=null;
+            UpdateTray(); RebuildMenu();
+            var message=onTable.Length==0?"The vessel is already empty.":"Vessel emptied: "+onTable.Length+" molecule"+(onTable.Length==1?"":"s")+" went back to the beakers.";
+            Station?.Flash(message); Notify(message,onTable.Length>0);
+        }
+        bool OnReactionTable(Vector3 world)
+        {
+            if(tray==null) return false;
+            var local=tray.InverseTransformPoint(world);
+            return Mathf.Abs(local.x)<.6f && Mathf.Abs(local.z)<.45f && local.y>-.2f && local.y<.8f;
         }
         /// <summary>The workbench is widened to this (it was 2.05 m), so finished molecules have room away from the gallery hole.</summary>
         public const float BenchWidth=2.6f;

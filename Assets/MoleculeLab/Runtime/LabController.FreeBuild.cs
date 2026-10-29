@@ -216,7 +216,7 @@ namespace MoleculeLab
                     ConsumeLoose(atom); added++;
                 }
             }
-            freeView.Relax(); RefreshStock();
+            freeView.Relax(); freeView.LiftClear(); RefreshStock(); // hydrogens added underneath must not end up inside the bench
             if(shortage) Notify("Added "+added+" H, but the shelf ran out of hydrogen. Recycle a molecule to free more.");
             else Notify(added==0?"No open bonds to fill.":"Added "+added+" hydrogen atom"+(added==1?"":"s")+".",added>0);
             if(added>0) FreeStructureChanged();
@@ -486,25 +486,77 @@ namespace MoleculeLab
             if(unfinished==null) { Notify("Nothing to clear: finished molecules go in the GALLERY hole or the TRASH bin."); return; }
             CancelInteractions(); Recycle(unfinished); UpdateTray(); Notify("Structure cleared.");
         }
-        /// <summary>BUILD: puts a hydrogen on every open hydrogen site of the recipe being built (repeats while new sites open up).</summary>
+        /// <summary>
+        /// BUILD: puts a hydrogen on every open hydrogen site of the recipe being built (repeats while new sites open up).
+        /// Atoms are placed on their sites directly (no hand-placement snap test), and a molecule resting on the bench is first
+        /// lifted so the new hydrogens underneath do not appear inside the bench.
+        /// </summary>
         public void FillRecipeHydrogens()
         {
-            var view=Selected!=null && !Selected.State.Complete?Selected:views.LastOrDefault(v=>!v.State.Complete);
-            if(view==null) { Notify("Choose a recipe first; Fill hydrogens completes its hydrogens."); return; }
-            var added=0;
-            for(var pass=0;pass<8;pass++)
+            var view=Selected!=null && !Selected.State.Complete?Selected:views.LastOrDefault(v=>v!=null && !v.State.Complete);
+            if(view==null) { Notify("Choose a goal first, or start building on the teal ring; Fill hydrogens completes the hydrogens."); return; }
+            if(reacting) { Notify("Wait for the reaction to finish."); return; }
+            if(view.PlacementLocked) { Notify("One moment: the first atom is still landing."); return; }
+            bool Open(int site) => view.Definition.atoms[site].element!=null && view.Definition.atoms[site].element.symbol=="H" && view.State.CanPlace(site,view.Definition.atoms[site].element,out _);
+            var sites=Enumerable.Range(0,view.Definition.atoms.Length).ToArray();
+            if(!sites.Any(Open)) { Notify("No hydrogen fits yet: place the heavier atoms first."); return; }
+            if(!view.Grab.isSelected)
+            {
+                // Every site that will be filled must end up above whatever the molecule is resting on.
+                var support=SupportHeight(sites.Where(view.State.IsOccupied).Select(view.SitePosition),view.transform);
+                if(support.HasValue) view.Lift(support.Value+.005f-sites.Min(i=>view.SitePosition(i).y-view.SiteRadius(i)));
+            }
+            var added=0; var shortage=false;
+            for(var pass=0;pass<8 && !shortage;pass++)
             {
                 var progress=false;
-                for(var site=0;site<view.Definition.atoms.Length;site++)
+                foreach(var site in sites)
                 {
-                    if(view.State.IsOccupied(site) || view.Definition.atoms[site].element==null || view.Definition.atoms[site].element.symbol!="H") continue;
-                    var atom=loose.FirstOrDefault(a=>a!=null && a.OnShelf && a.Element!=null && a.Element.symbol=="H"); if(atom==null) break;
-                    var home=atom.transform.position; atom.transform.position=view.SitePosition(site);
-                    if(TryAttach(atom)) { added++; progress=true; } else atom.transform.position=home;
+                    if(!Open(site)) continue;
+                    var atom=loose.FirstOrDefault(a=>a!=null && a.OnShelf && a.Element!=null && a.Element.symbol=="H");
+                    if(atom==null) { shortage=true; break; }
+                    if(PlaceDirectly(view,site,atom)) { added++; progress=true; }
                 }
                 if(!progress || view==null || view.State.Complete) break;
             }
-            Notify(added==0?"No hydrogen fits yet: place the heavier atoms first.":added+" hydrogen"+(added==1?"":"s")+" added.",added>0);
+            if(view!=null && !view.State.Complete) Notify(shortage?"Added "+added+" H, but the beakers ran out of hydrogen.":added+" hydrogen"+(added==1?"":"s")+" added. Place the next heavy atom, then fill again.",added>0);
+            else if(added>0 && Mode!=LabMode.Free) audioSource.PlayOneShot(successTone);
+        }
+        bool PlaceDirectly(MoleculeView view,int site,LooseAtom atom)
+        {
+            if(!atom.TakeFromShelf()) return false;
+            if(!Inventory.Transfer(atom.TokenId,atom.Owner,view.InventoryOwner)) { atom.ReturnHome(); return false; }
+            view.TokenIds[site]=atom.TokenId;
+            if(!view.State.TryPlace(site,atom.Element,out var reason)) throw new InvalidOperationException(reason);
+            var from=atom.transform.position; ClearPreview(atom); loose.Remove(atom); atom.gameObject.SetActive(false); Destroy(atom.gameObject);
+            if(view!=null) { view.Refresh(); view.AnimateSite(site,from); }
+            RefreshStock(); return true;
+        }
+        static readonly RaycastHit[] supportHits=new RaycastHit[16];
+        /// <summary>Height of the surface under these points (the bench, a table...), ignoring molecules and atoms; null if nothing is below.</summary>
+        static float? SupportHeight(IEnumerable<Vector3> points,Transform self)
+        {
+            float? best=null;
+            foreach(var point in points)
+            {
+                var count=Physics.RaycastNonAlloc(point,Vector3.down,supportHits,1.2f,~0,QueryTriggerInteraction.Ignore);
+                for(var k=0;k<count;k++)
+                {
+                    var t=supportHits[k].collider!=null?supportHits[k].collider.transform:null;
+                    if(t==null || t.IsChildOf(self) || t.GetComponentInParent<LooseAtom>()!=null || t.GetComponentInParent<MoleculeView>()!=null || t.GetComponentInParent<FreeAtomHandle>()!=null) continue;
+                    if(best==null || supportHits[k].point.y>best.Value) best=supportHits[k].point.y;
+                }
+            }
+            return best;
+        }
+        /// <summary>A beaker atom being held passes through structures that are being built, so it can be brought right up to them without shoving them about.</summary>
+        public void IgnoreBuildCollisions(Collider own)
+        {
+            if(own==null || !own.enabled) return;
+            foreach(var view in views)
+                if(view!=null && !view.State.Complete)
+                    foreach(var c in view.GetComponentsInChildren<Collider>()) if(c.enabled) Physics.IgnoreCollision(own,c);
+            if(freeView!=null) foreach(var c in freeView.GetComponentsInChildren<Collider>()) if(c.enabled) Physics.IgnoreCollision(own,c);
         }
         /// <summary>BUILD: takes the most recently placed atom off the recipe (the seed atom stays).</summary>
         public void UndoRecipeAtom()
