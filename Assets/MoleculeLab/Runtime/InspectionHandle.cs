@@ -18,7 +18,6 @@ namespace MoleculeLab
         {
             lab=owner; deform=deformation;
             visual=LabVisuals.Shape("Grip handle",PrimitiveType.Sphere,transform,Vector3.zero,Vector3.one*.07f,deform?new Color(.2f,.65f,1):new Color(1,.65f,.12f));
-            LabVisuals.Label(transform,deform?"DEFORM\nGrip + move vertically":"TWIST\nGrip + turn wrist",new Vector3(0,.1f,0),.022f);
             interactable=gameObject.AddComponent<XRSimpleInteractable>();
             interactable.selectEntered.AddListener(args=>
             {
@@ -43,10 +42,14 @@ namespace MoleculeLab
             if(!visible) return;
             if(hand==null)
             {
-                transform.position=selected.transform.position+new Vector3(deform?-.3f:.3f,0,0); return;
+                // Either side of the molecule as the player sees it, also while the molecule is held in the other hand.
+                var right=Camera.main!=null?Vector3.ProjectOnPlane(Camera.main.transform.right,Vector3.up):Vector3.right;
+                if(right.sqrMagnitude<1e-4f) right=Vector3.right;
+                transform.position=selected.transform.position+right.normalized*(deform?-.26f:.26f)+Vector3.up*.03f; return;
             }
-            if(target!=selected || selected.Grab.isSelected) { Cancel(); return; }
+            if(target!=selected) { Cancel(); return; } // holding the molecule itself is fine
             var attach=hand.GetAttachTransform(interactable);
+            lab.Tag?.Request(target.transform,deform?"Bend":"Twist",deform?"Move your hand up or down; let go and it springs back.":"Turn your wrist to rotate one end around the C-C bond.",2,.3f);
             if(deform)
             {
                 var amount=Mathf.Clamp((attach.position.y-initialPosition.y)*100,-15,15); target.Bend(amount);

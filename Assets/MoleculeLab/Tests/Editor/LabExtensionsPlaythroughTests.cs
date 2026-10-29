@@ -83,6 +83,10 @@ namespace MoleculeLab.Tests
             var start=water.transform.position.y;
             for(var deadline=EditorApplication.timeSinceStartup+1.5;EditorApplication.timeSinceStartup<deadline;) yield return null;
             Assert.That(water.transform.position.y,Is.LessThan(start-.15f)); Assert.That(water.transform.position.y,Is.GreaterThan(lab.Environment.bench.position.y),"It lands on the bench, not through it.");
+            // Pushed into the tabletop (as a new atom placed underneath would be), it lifts straight back out instead of sinking through.
+            water.transform.position+=Vector3.down*.05f; water.Body.position=water.transform.position;
+            for(var deadline=EditorApplication.timeSinceStartup+.5;EditorApplication.timeSinceStartup<deadline;) yield return null;
+            Assert.That(Enumerable.Range(0,3).Min(i=>water.RestPosition(i).y-water.SiteRadius(i)),Is.GreaterThan(lab.BenchTop-.012f),"Lifted out of the bench.");
 
             // Gallery bin: dropped in, the molecule is recorded and leaves the bench.
             water.transform.position=lab.GalleryBin.transform.position+Vector3.up*1f; water.Body.position=water.transform.position; water.Body.linearVelocity=Vector3.zero;
@@ -271,7 +275,8 @@ namespace MoleculeLab.Tests
             lab.StartMolecule(lab.molecules.First(m=>m.id=="methane")); var methane=lab.Selected;
             for(var deadline=EditorApplication.timeSinceStartup+1;EditorApplication.timeSinceStartup<deadline;) yield return null;
             lab.FillHydrogensAnyMode(); Assert.That(methane.State.Complete,Is.True,"Fill hydrogens completes methane in one press.");
-            Assert.That(Enumerable.Range(0,5).Min(i=>methane.SitePosition(i).y-methane.SiteRadius(i)),Is.GreaterThan(lab.BenchTop-.01f));
+            var hits=Physics.RaycastAll(methane.transform.position+Vector3.up*.5f,Vector3.down,2f).OrderBy(h=>h.distance).Select(h=>h.collider.name+"@"+h.point.y.ToString("0.000"));
+            Assert.That(Enumerable.Range(0,5).Min(i=>methane.RestPosition(i).y-methane.SiteRadius(i)),Is.GreaterThan(lab.BenchTop-.01f),"methane at "+methane.transform.position.ToString("F3")+", bench top "+lab.BenchTop+", below: "+string.Join(", ",hits));
             yield return null; AssertInventory(lab);
             yield return new ExitPlayMode();
         }
@@ -302,6 +307,8 @@ namespace MoleculeLab.Tests
             Assert.That(exhibit.Grab.colliders,Is.EqualTo(new Collider[]{exhibit.GrabZone}));
             Assert.That(exhibit.GrabZone.radius*exhibit.transform.lossyScale.x,Is.GreaterThan(.08f));
             Assert.That(lab.Hologram.Visible,Is.False);
+            // Held molecules show their name on the hologram tag, not on a floating label.
+            Assert.That(lab.Tag,Is.Not.Null);
 
             lab.ExhibitGrabbed(exhibit);
             Assert.That(lab.Hologram.Visible,Is.True); Assert.That(lab.Hologram.Title,Is.EqualTo("Water"));
@@ -313,10 +320,16 @@ namespace MoleculeLab.Tests
             lab.ExhibitReleased(exhibit);
             for(var deadline=EditorApplication.timeSinceStartup+1;lab.Hologram.Visible && EditorApplication.timeSinceStartup<deadline;) yield return null;
             Assert.That(lab.Hologram.Visible,Is.False);
+            // Held molecules show their name on the hologram tag, not on a floating label.
+            Assert.That(lab.Tag,Is.Not.Null);
 
             // A second pick-up uses the remembered answer: no new PubChem request.
             lab.ExhibitGrabbed(exhibit);
             Assert.That(lab.Hologram.Body,Does.Contain("oxygen hydride")); Assert.That(info.Calls,Is.EqualTo(1));
+            // Let go over the trash bin, an exhibit leaves the gallery.
+            var count=lab.Gallery.Entries.Count; var trashed=lab.GalleryRoom.Exhibits.First();
+            trashed.transform.position=lab.TrashBin.transform.position+Vector3.up*.9f; lab.ExhibitReleased(trashed); yield return null;
+            Assert.That(lab.Gallery.Entries.Count,Is.EqualTo(count-1)); Assert.That(lab.TrashBin.LastFeedback,Does.Contain("Removed"));
             yield return new ExitPlayMode();
         }
 

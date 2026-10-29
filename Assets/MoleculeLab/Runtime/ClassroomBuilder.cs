@@ -423,7 +423,7 @@ namespace MoleculeLab
 
         static TMP_FontAsset handwritingFont;
         /// <summary>Patrick Hand (SIL Open Font License, Resources/Fonts), turned into a dynamic TextMeshPro font the first time it is needed.</summary>
-        static TMP_FontAsset Handwriting()
+        public static TMP_FontAsset Handwriting()
         {
             if(handwritingFont!=null) return handwritingFont;
             var font=Resources.Load<Font>("Fonts/PatrickHand-Regular"); if(font==null) return null;

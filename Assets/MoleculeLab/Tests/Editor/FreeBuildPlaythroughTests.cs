@@ -80,7 +80,7 @@ namespace MoleculeLab.Tests
             Assert.That(lab.FreeView,Is.Null,"An identified molecule is locked into an ordinary molecule.");
             Assert.That(lab.Selected.Definition.id,Is.EqualTo("pubchem-176"));
             Assert.That(lab.Selected.Definition.displayName,Is.EqualTo("Acetic Acid"));
-            Assert.That(lab.Selected.GetComponentsInChildren<TMPro.TextMeshPro>().Any(t=>t.text.Contains("Acetic Acid")),Is.True);
+            Assert.That(lab.Selected.GetComponentsInChildren<TMPro.TextMeshPro>(true).Any(t=>t.text.Contains("Acetic Acid")),Is.True);
             Assert.That(lab.Selected.State.Complete,Is.True); Assert.That(lab.Discoveries,Does.Contain("Acetic Acid"));
             AssertInventory(lab);
 

@@ -37,10 +37,36 @@ namespace MoleculeLab
                 foreach(var t in bench.GetComponentsInChildren<TMPro.TMP_Text>(true)) if(t.text.Trim()=="REACTION TRAY" || t.text.Trim()=="REACTION VESSEL") t.gameObject.SetActive(false);
             }
             tray=Station.Anchor; Environment.tray=Station.Anchor;
+            // The prefab's "ASSEMBLY" lettering printed on the bench top: the build mat says where to build now.
+            foreach(var t in Environment.GetComponentsInChildren<TMPro.TMP_Text>(true)) if(t.text!=null && t.text.Trim()=="ASSEMBLY") t.gameObject.SetActive(false);
             // A push button on the reaction table that empties the vessel (the rest of the lab is left alone).
             VesselReset=ResetButton.Create(Station.transform,this,new Vector3(.43f,0,-.2f),"EMPTY VESSEL\npush or point",EmptyVessel,"Vessel reset button (runtime)");
         }
         public ResetButton VesselReset { get; private set; }
+        /// <summary>What the hologram tag says under a held molecule's name.</summary>
+        public string HeldHint(MoleculeView view)
+        {
+            if(view==null) return "";
+            if(!view.State.Complete)
+            {
+                var total=view.Definition.atoms.Length; var placed=Enumerable.Range(0,total).Count(view.State.IsOccupied);
+                return "Building: "+placed+" of "+total+" atoms placed. Bring atoms to the teal spots with your other hand.";
+            }
+            if(Mode==LabMode.Inspect)
+                return view.Definition.geometry+(view.Definition.rotatableBond>=0?"\nGold orb: grip and turn your wrist to twist. Blue orb: grip and move up or down to bend.":"");
+            return view.FragmentPair!=null?"A radical: bring its partner close and let go to rejoin them.":
+                "Let go over the GALLERY hole to keep it, in the TRASH to discard it, or in the reaction vessel to react it.";
+        }
+        Collider benchTop;
+        /// <summary>Below the workbench's top surface, inside its footprint: where a molecule can only be if it slipped through.</summary>
+        public bool UnderWorkbenchTop(Vector3 world)
+        {
+            if(bench==null) return false;
+            if(benchTop==null) benchTop=bench.GetComponentsInChildren<Collider>(true).FirstOrDefault(c=>c.name=="Workbench");
+            if(benchTop==null) return false;
+            var b=benchTop.bounds;
+            return world.y<b.max.y-.01f && world.y>.3f && world.x>b.min.x && world.x<b.max.x && world.z>b.min.z && world.z<b.max.z;
+        }
         /// <summary>Everything in the vessel or lying on the reaction table goes back to the beakers.</summary>
         public void EmptyVessel()
         {
@@ -127,7 +153,7 @@ namespace MoleculeLab
         {
             if(reacting) return "<b>Reacting...</b>\nAtoms rearrange; nothing is lost.";
             var docked=DockedViews();
-            if(docked.Length==0) return "<b>REACTION VESSEL</b>\nDrop finished molecules in here";
+            if(docked.Length==0) return "Empty.\nDrop finished molecules in here, or let go of a gallery exhibit over it.";
             // The label refreshes four times a second; only work the rules out again when the vessel's contents change.
             if(statusText!=null && statusReaction==ActiveReaction && statusViews!=null && statusViews.SequenceEqual(docked)) return statusText;
             statusViews=docked; statusReaction=ActiveReaction; statusText=WorkOutStatus(docked); return statusText;

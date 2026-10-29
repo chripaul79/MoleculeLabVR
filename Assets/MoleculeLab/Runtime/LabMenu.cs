@@ -14,6 +14,8 @@ namespace MoleculeLab
         int moleculePage;
         Button activateButton;
         float reachOffset;
+        /// <summary>The teal rays from an atom towards where its next bonds go (recipe and free building). Settings switches them off.</summary>
+        public bool DirectionRays { get; set; } = true;
         public static string ConditionName(ReactionCondition c) => c==ReactionCondition.Ignition?"Ignition":c==ReactionCondition.PalladiumCatalyst?"Pd catalyst":c==ReactionCondition.AcidCatalyst?"Acid catalyst":"Not selected";
         RectTransform Rect(string name,Transform parent,Vector2 position,Vector2 size)
         {
@@ -71,8 +73,9 @@ namespace MoleculeLab
             energyText=Text(page,"",new Vector2(430,-160),new Vector2(760,95),24,new Color(.8f,.85f,.88f));
             if(settingsPage)
             {
-                var labels=new[]{"Bench lower","Bench higher","Bench nearer","Bench farther","Sound on/off","Effects full/low","Hints on/off","Clear gallery"};
-                Action[] actions={()=>AdjustHeight(-.05f),()=>AdjustHeight(.05f),()=>AdjustReach(-.05f),()=>AdjustReach(.05f),ToggleSound,()=>{ReducedEffects=!ReducedEffects;Notify(ReducedEffects?"Reduced effects enabled.":"Full effects enabled.");},()=>{hints=!hints;RebuildMenu();},ClearGallery};
+                var labels=new[]{"Bench lower","Bench higher","Bench nearer","Bench farther","Sound on/off","Effects full/low","Hints on/off","Clear gallery","Direction rays: "+(DirectionRays?"ON":"OFF")};
+                Action[] actions={()=>AdjustHeight(-.05f),()=>AdjustHeight(.05f),()=>AdjustReach(-.05f),()=>AdjustReach(.05f),ToggleSound,()=>{ReducedEffects=!ReducedEffects;Notify(ReducedEffects?"Reduced effects enabled.":"Full effects enabled.");},()=>{hints=!hints;RebuildMenu();},ClearGallery,
+                    ()=>{DirectionRays=!DirectionRays;RebuildMenu();Notify(DirectionRays?"Direction rays on: lines show where each bond points.":"Direction rays off: only the guide dots and spots remain.");}};
                 for(var i=0;i<labels.Length;i++) Button(page,labels[i],new Vector2(-650+(i%2)*410,300-(i/2)*125),new Vector2(375,80),actions[i]);
                 lesson.text="Fit the workstation to your seated or standing reach. Both hands support direct pinch grabs. Point and pinch also grabs distant objects. Release before changing targets.";
             }

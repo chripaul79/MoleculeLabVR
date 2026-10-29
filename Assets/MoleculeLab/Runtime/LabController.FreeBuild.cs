@@ -400,7 +400,9 @@ namespace MoleculeLab
                 dropZone=go.AddComponent<LineRenderer>(); dropZone.useWorldSpace=false; dropZone.loop=true; dropZone.positionCount=48;
                 dropZone.sharedMaterial=LabVisuals.Material(new Color(.2f,.85f,.75f));
                 for(var i=0;i<48;i++) { var angle=i*Mathf.PI*2/48; dropZone.SetPosition(i,new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*.12f); }
-                dropLabel=LabVisuals.Label(go.transform,"",Vector3.up*.1f,.026f);
+                // A paper build mat taped to the bench: the ring is drawn on it and the instruction written underneath.
+                dropLabel=LabelCraft.PaperNote(go.transform,"Build mat",new Vector3(0,-.003f,-.035f),LabelCraft.Flat,new Vector2(.32f,.4f),"",.22f);
+                dropLabel.transform.localPosition=new Vector3(0,-.165f,-.0012f); dropLabel.rectTransform.sizeDelta=new Vector2(.3f,.06f);
             }
             if(dropZone.gameObject.activeSelf!=show) dropZone.gameObject.SetActive(show);
             if(!show) return;
@@ -503,8 +505,8 @@ namespace MoleculeLab
             if(!view.Grab.isSelected)
             {
                 // Every site that will be filled must end up above whatever the molecule is resting on.
-                var support=SupportHeight(sites.Where(view.State.IsOccupied).Select(view.SitePosition),view.transform);
-                if(support.HasValue) view.Lift(support.Value+.005f-sites.Min(i=>view.SitePosition(i).y-view.SiteRadius(i)));
+                var support=SupportHeight(sites.Where(view.State.IsOccupied).Select(view.RestPosition),view.transform);
+                if(support.HasValue) view.Lift(support.Value+.005f-sites.Min(i=>view.RestPosition(i).y-view.SiteRadius(i)));
             }
             var added=0; var shortage=false;
             for(var pass=0;pass<8 && !shortage;pass++)

@@ -52,7 +52,7 @@ namespace MoleculeLab.Tests
             lab.UseGalleryFile(null);
             // No headset here: stop the rig from hiding or re-posing its devices, and drive the presses ourselves.
             foreach(var b in Object.FindObjectsByType<Behaviour>(FindObjectsInactive.Include))
-                if(b!=null && (b.GetType().Name=="XRInputModalityManager" || b.GetType().Name=="TrackedPoseDriver" || b.GetType().Name=="XRTransformStabilizer" || b is HandMenuRay)) b.enabled=false;
+                if(b!=null && (b.GetType().Name=="XRInputModalityManager" || b.GetType().Name=="XRInteractionSimulator" || b.GetType().Name=="TrackedPoseDriver" || b.GetType().Name=="XRTransformStabilizer" || b is HandMenuRay)) b.enabled=false;
             var panel=GameObject.Find("Lab control panel");
             var label=panel.GetComponentsInChildren<TMPro.TMP_Text>(true).First(t=>t.text.Trim()=="INSPECT");
             var tab=label.GetComponentInParent<Button>(); Assert.That(tab,Is.Not.Null);
@@ -90,13 +90,14 @@ namespace MoleculeLab.Tests
                     for(var i=0;i<3;i++) yield return null;
                 }
                 OnTab(out var hit);
-                strength=1; state.Step(1,1,null,null,tab.gameObject); yield return null; yield return null;
-                strength=0; state.Step(0,2,null,null,tab.gameObject); yield return null; yield return null;
+                // A few frames each way, like a real pinch (two frames was timing-sensitive).
+                strength=1; state.Step(1,1,null,null,tab.gameObject); for(var f=0;f<4;f++) yield return null;
+                strength=0; state.Step(0,2,null,null,tab.gameObject); for(var f=0;f<4;f++) yield return null;
                 var origin=ray.farInteractionCaster is InteractionCasterBase c2 && c2.effectiveCastOrigin!=null?c2.effectiveCastOrigin:ray.transform;
                 var ok=lab.Mode==LabMode.Inspect; if(!ok) failures++;
                 report.Append("   ray from ").Append(origin.name).Append(' ').Append(origin.position).Append(" towards ").Append(origin.forward).Append(" tab at ").Append(tab.transform.position).Append('\n');
                 report.Append(ok?"OK   ":"FAIL ").Append(path).Append(" | was active=").Append(wasActive).Append(" enabled=").Append(wasEnabled).Append(" ui=").Append(wasUI)
-                      .Append(" | ui hit=").Append(hit).Append(" | layers=").Append(ray.interactionLayers.value).Append('\n');
+                      .Append(" | ui hit=").Append(hit).Append(" | mode=").Append(lab.Mode).Append(" status=").Append(GameObject.Find("Lab control panel").GetComponentsInChildren<TMPro.TMP_Text>().Where(t=>t.fontSize==30 && t.rectTransform.sizeDelta.x>1600).Select(t=>t.text).FirstOrDefault()).Append(" | layers=").Append(ray.interactionLayers.value).Append('\n');
                 ray.uiPressInput.bypass=null; ray.selectInput.bypass=null; ray.gameObject.SetActive(false);
             }
             Debug.Log("Menu press report:\n"+report);

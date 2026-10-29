@@ -1,3 +1,4 @@
+using System.Linq;
 using TMPro;
 using UnityEngine;
 namespace MoleculeLab
@@ -35,7 +36,7 @@ namespace MoleculeLab
             if(!lab.FindPlacement(atom,Atom==atom?Target:null,Site,out var target,out var site,out var result)) { Clear(atom); return; }
             Atom=atom; Target=target; Site=site;
             var end=target.SitePosition(site); var start=atom.transform.position;
-            arc.enabled=true; ring.enabled=true; label.gameObject.SetActive(true);
+            arc.enabled=true; ring.enabled=true;
             var anchor=target.SitePosition(target.AnchorFor(site));
             Circle(ring,end,Camera.main!=null?end-Camera.main.transform.position:end-anchor,result.Ready?.048f:.03f);
             ring.widthMultiplier=result.Ready?.005f:.002f;
@@ -45,8 +46,9 @@ namespace MoleculeLab
                 var wobble=lab.ReducedEffects?Vector3.zero:Vector3.up*(Mathf.Sin(t*22+Time.time*5)*.009f*Mathf.Sin(t*Mathf.PI));
                 arc.SetPosition(i,Vector3.Lerp(start,end,t)+wobble);
             }
-            label.transform.position=end+Vector3.up*.09f;
-            label.text=result.Ready?"Release to bond":result.Distance>lab.snapDistance?"Move closer":"Follow the bond direction";
+            var placed=Enumerable.Range(0,target.Definition.atoms.Length).Count(target.State.IsOccupied);
+            lab.Tag?.Request(target.transform,result.Ready?"Release to bond":result.Distance>lab.snapDistance?"Move closer":"Follow the bond direction",
+                target.Definition.displayName+": "+placed+" of "+target.Definition.atoms.Length+" atoms placed",2,.25f);
             if(result.Ready && !wasReady) lab.ReadyCue(); wasReady=result.Ready;
         }
         public void Clear(LooseAtom atom=null)
@@ -60,7 +62,7 @@ namespace MoleculeLab
         {
             foreach(var guide in guides) guide.enabled=false;
             var view=lab.Selected;
-            if(lab.Mode!=LabMode.Build || view==null || view.State.Complete || view.PlacementLocked) return;
+            if(lab.Mode!=LabMode.Build || !lab.DirectionRays || view==null || view.State.Complete || view.PlacementLocked) return;
             var count=0;
             for(var site=0;site<view.Definition.atoms.Length && count<guides.Length;site++)
             {

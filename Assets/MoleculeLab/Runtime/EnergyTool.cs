@@ -15,7 +15,6 @@ namespace MoleculeLab
             lab=owner;
             LabVisuals.Shape("Handle",PrimitiveType.Cylinder,transform,Vector3.zero,new Vector3(.045f,.09f,.045f),new Color(.23f,.3f,.38f));
             tip=LabVisuals.Shape("Energy tip",PrimitiveType.Sphere,transform,Vector3.up*.13f,Vector3.one*.055f,new Color(1,.65f,.1f)).transform;
-            LabVisuals.Label(transform,"ENERGY",new Vector3(0,.21f,0),.02f);
             var rb=gameObject.AddComponent<Rigidbody>(); rb.useGravity=false; rb.isKinematic=true;
             grab=gameObject.AddComponent<XRGrabInteractable>(); grab.throwOnDetach=false;
             grab.lastSelectExited.AddListener(_=> { energy=0; chargingTarget=null; lab.EnergyProgress(0); });
@@ -43,6 +42,7 @@ namespace MoleculeLab
             }
             energy=valid?Mathf.Min(1,energy+Time.deltaTime*.5f):Mathf.Max(0,energy-Time.deltaTime);
             lab.EnergyProgress(energy);
+            if(grab.isSelected) lab.Tag?.Request(transform,"Energy wand",valid?"Breaking the C-C bond: "+Mathf.RoundToInt(energy*100)+"%":"Hold the tip at ethane's middle C-C bond for two seconds to break it.",1,.4f);
             if(energy>=1) { lab.BreakSelected(); energy=0; }
             if(!grab.isSelected && (transform.position.y<.3f || transform.position.magnitude>4)) ReturnHome();
         }

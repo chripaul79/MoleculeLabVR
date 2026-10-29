@@ -81,6 +81,13 @@ namespace MoleculeLab
             return isNew;
         }
         public void Clear() { entries.Clear(); Version++; Save(); }
+        /// <summary>Removes one exhibit. Returns false if it was not in the gallery.</summary>
+        public bool Remove(string id)
+        {
+            var removed=entries.RemoveAll(e=>e.id==id)>0;
+            if(removed) { Version++; Save(); }
+            return removed;
+        }
 
         void Save()
         {

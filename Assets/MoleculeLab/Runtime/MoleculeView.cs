@@ -18,7 +18,7 @@ namespace MoleculeLab
         bool docked;
         public bool PlacementLocked;
         public Rigidbody Body { get; private set; }
-        float floorTime;
+        float floorTime, stuckTime;
         public string InventoryOwner { get; private set; } = System.Guid.NewGuid().ToString();
         public int[] TokenIds { get; private set; }
         Vector3[] snapFrom;
@@ -45,6 +45,7 @@ namespace MoleculeLab
             bondShapes = Definition.bonds.Select(b => Enumerable.Range(0,Definition.IsAromaticBond(b)?1:b.order).Select(_ =>
                 LabVisuals.Shape("Bond", PrimitiveType.Cylinder, transform, Vector3.zero, Vector3.one, new Color(.55f,.7f,.78f), false).transform).ToArray()).ToArray();
             label = LabVisuals.Label(transform, "", new Vector3(0,Definition.atoms.Min(a=>a.position.y-a.element.radius)-.055f,0), .024f);
+            label.gameObject.SetActive(false); // the name shows on a hologram tag while the molecule is held
             var body = gameObject.AddComponent<Rigidbody>(); body.useGravity = false; body.isKinematic = true; Body = body;
             body.mass = .3f; body.linearDamping = .6f; body.angularDamping = 3f; body.maxDepenetrationVelocity = .6f; // a new atom below the surface lifts it gently
             body.interpolation = RigidbodyInterpolation.Interpolate; body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
@@ -69,6 +70,39 @@ namespace MoleculeLab
         void OnDestroy() { if (State != null) State.Completed -= OnCompleted; }
         void OnCompleted() { Refresh(); lab.MoleculeCompleted(this); }
         public Vector3 SitePosition(int i) => atomShapes[i].position;
+        static readonly RaycastHit[] surfaceHits = new RaycastHit[16];
+        /// <summary>
+        /// Keeps a resting molecule out of the bench (or any table): an atom that ends up inside the surface below it - a new atom
+        /// placed underneath, or a fast drop - lifts the whole molecule straight out. Left to physics, the overlap was pushed
+        /// downwards through the thin tabletop, where the molecule got stuck.
+        /// </summary>
+        public bool KeepAboveSurfaces()
+        {
+            if (Body == null || Body.isKinematic || docked || (Grab != null && Grab.isSelected)) return false;
+            var top = float.MinValue;
+            for (var i = 0; i < atomShapes.Length; i++) if (State.IsOccupied(i)) top = Mathf.Max(top, RestPosition(i).y + SiteRadius(i));
+            if (top == float.MinValue) return false;
+            var lift = 0f;
+            for (var i = 0; i < atomShapes.Length; i++)
+            {
+                if (!State.IsOccupied(i)) continue;
+                var centre = RestPosition(i); var bottom = centre.y - SiteRadius(i); // not the snap-in animation, which starts at the beaker
+                // Look down the column from the molecule's top to this atom's bottom: anything solid in it means the atom is sunk in.
+                var count = Physics.RaycastNonAlloc(new Vector3(centre.x, top + .02f, centre.z), Vector3.down, surfaceHits, top + .02f - bottom + .001f, ~0, QueryTriggerInteraction.Ignore);
+                for (var k = 0; k < count; k++)
+                {
+                    var hit = surfaceHits[k]; var t = hit.collider != null ? hit.collider.transform : null;
+                    if (t == null || t.IsChildOf(transform) || t.GetComponentInParent<MoleculeView>() != null || t.GetComponentInParent<LooseAtom>() != null || t.GetComponentInParent<FreeAtomHandle>() != null || t.GetComponentInParent<GalleryExhibit>() != null) continue;
+                    lift = Mathf.Max(lift, hit.point.y - bottom + .002f);
+                }
+            }
+            if (lift <= .003f) return false;
+            transform.position += Vector3.up * lift; Body.position = transform.position;
+            var velocity = Body.linearVelocity; if (velocity.y < 0) { velocity.y = 0; Body.linearVelocity = velocity; }
+            return true;
+        }
+        /// <summary>Where site i sits once any snap-in animation has finished (world space).</summary>
+        public Vector3 RestPosition(int i) => transform.TransformPoint(Definition.atoms[i].position);
         /// <summary>Visible radius of the atom at site i (world space).</summary>
         public float SiteRadius(int i) => Definition.atoms[i].element.radius * LabVisuals.AtomScale * transform.lossyScale.x;
         /// <summary>Moves the molecule up by <paramref name="height"/> and keeps physics in step (used to lift it clear of the bench).</summary>
@@ -90,6 +124,7 @@ namespace MoleculeLab
                 atomShapes[i].localScale = Vector3.one * element.radius * LabVisuals.AtomScale * (occupied ? 2f : 1f);
             }
             Grab.enabled = !State.Consumed;
+            KeepAboveSurfaces(); // a newly placed atom may be inside the bench: lift out before physics pushes it through
             // Two hands on a finished molecule scale it; a half-built one is held by one hand at a time (the other hand passes it over).
             Grab.selectMode = State.Complete ? InteractableSelectMode.Multiple : InteractableSelectMode.Single;
             ApplyPhysics();
@@ -146,11 +181,17 @@ namespace MoleculeLab
         void Update()
         {
             if(snapTime!=null && snapTime.Any(t=>t>0)) { for(var i=0;i<snapTime.Length;i++) snapTime[i]=Mathf.Max(0,snapTime[i]-Time.deltaTime); UpdateGeometry(); }
+            if (Grab != null && Grab.isSelected && lab.Tag != null) lab.Tag.Request(transform, Definition.displayName + "  " + Definition.formula, lab.HeldHint(this), 1, 1.2f);
             if (Grab == null || Grab.isSelected) { floorTime = 0; return; }
             ApplyPhysics();
             var position = transform.position;
             if (Docked) return;
             if (Body.isKinematic) { if (position.y < .3f || position.magnitude > 6) transform.position = lab.BuildPosition; return; }
+            KeepAboveSurfaces();
+            // Wedged under the workbench top (a fast drop, or squeezed through an edge): after a moment it is put back on top.
+            if (Body.linearVelocity.sqrMagnitude < .04f && lab.UnderWorkbenchTop(position))
+            { stuckTime += Time.deltaTime; if (stuckTime > 1.2f) { stuckTime = 0; ReturnToBench(); return; } }
+            else stuckTime = 0;
             // Dropped molecules: anything that leaves the room, or lies on the floor for a few seconds, returns to the bench.
             if (position.y < -1 || position.magnitude > 15) ReturnToBench();
             else if (position.y < .3f) { floorTime += Time.deltaTime; if (floorTime > 3) ReturnToBench(); }

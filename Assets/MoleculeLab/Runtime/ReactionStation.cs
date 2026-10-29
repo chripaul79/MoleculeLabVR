@@ -82,13 +82,9 @@ namespace MoleculeLab
             }
             Floor=new GameObject("Vessel floor").transform; Floor.SetParent(transform,false); Floor.localPosition=new Vector3(0,bottom+.004f,0);
             BuildReactionEffects(bottom);
-            var caption=LabVisuals.Label(transform,"REACTION VESSEL",new Vector3(0,.017f,VesselDepth*.5f+.05f),.025f);
-            var cf=caption.GetComponent<FaceViewer>(); if(cf!=null) { cf.enabled=false; Destroy(cf); }
-            // Flat on the base plate in front of the vessel, readable from where the player stands.
-            caption.rectTransform.sizeDelta=new Vector2(.5f,.05f); caption.color=Color.white;
-            caption.transform.localPosition=new Vector3(0,.017f,-(VesselDepth*.5f+.005f)); caption.transform.localRotation=Quaternion.Euler(90,0,0);
-            Label=LabVisuals.Label(transform,"",new Vector3(0,VesselHeight+.14f,0),.03f);
-            Label.rectTransform.sizeDelta=new Vector2(.7f,.3f); Label.color=Color.white; Label.outlineWidth=.2f; Label.outlineColor=new Color32(10,20,30,255);
+            // Embossed label-maker tape stuck on the front of the glass.
+            LabelCraft.LabelTape(transform,"Vessel label",new Vector3(0,VesselHeight-.05f,-(VesselDepth*.5f+.003f)),Quaternion.identity,"Reaction vessel");
+            BuildTablet();
             // Tools on the bench behind the vessel, each with a flat name plate.
             var tools=new[]{(ReactionCondition.Ignition,"FLAME",kit!=null?kit.toolFlame:null,new Color(.95f,.55f,.15f)),
                             (ReactionCondition.PalladiumCatalyst,"Pd CATALYST",kit!=null?kit.toolCatalyst:null,new Color(.55f,.58f,.62f)),
@@ -101,6 +97,33 @@ namespace MoleculeLab
                 var tool=ConditionTool.Create(lab,this,tools[i].Item1,tools[i].Item2,tools[i].Item3,tools[i].Item4,home,transform.rotation);
                 this.tools.Add(tool);
             }
+        }
+        /// <summary>
+        /// A tablet on a small stand beside the vessel: its screen shows what is in the vessel and what each tool would do
+        /// (instead of text floating above the glass).
+        /// </summary>
+        void BuildTablet()
+        {
+            var stand=new GameObject("Tablet on stand").transform; stand.SetParent(transform,false);
+            stand.localPosition=new Vector3(-.42f,0,.0f); stand.localRotation=Quaternion.Euler(0,12,0); // turned slightly towards the middle of the table
+            var metal=new Color(.78f,.8f,.83f); var black=new Color(.07f,.075f,.085f);
+            LabVisuals.Shape("Stand foot",PrimitiveType.Cube,stand,new Vector3(0,.005f,.025f),new Vector3(.13f,.01f,.11f),metal,true);
+            LabVisuals.Shape("Stand lip",PrimitiveType.Cube,stand,new Vector3(0,.018f,-.012f),new Vector3(.13f,.016f,.012f),metal,false);
+            var arm=LabVisuals.Shape("Stand arm",PrimitiveType.Cube,stand,new Vector3(0,.065f,.06f),new Vector3(.035f,.12f,.008f),metal,false).transform;
+            arm.localRotation=Quaternion.Euler(-25,0,0);
+            // Leaning back 18 degrees, screen towards the player.
+            var tablet=new GameObject("Tablet").transform; tablet.SetParent(stand,false);
+            tablet.localPosition=new Vector3(0,.105f,.012f); tablet.localRotation=Quaternion.Euler(18,0,0);
+            LabVisuals.Shape("Tablet body",PrimitiveType.Cube,tablet,Vector3.zero,new Vector3(.25f,.18f,.01f),new Color(.6f,.62f,.66f),true);
+            LabVisuals.Shape("Screen",PrimitiveType.Cube,tablet,new Vector3(0,0,-.0052f),new Vector3(.236f,.166f,.001f),black,false);
+            LabVisuals.Shape("Camera dot",PrimitiveType.Sphere,tablet,new Vector3(0,.0855f,-.0052f),Vector3.one*.004f,new Color(.2f,.2f,.22f),false);
+            var header=LabVisuals.Label(tablet,"<b>REACTION VESSEL</b>",new Vector3(0,.068f,-.0062f),.012f);
+            var hf=header.GetComponent<FaceViewer>(); if(hf!=null) { hf.enabled=false; Destroy(hf); }
+            header.rectTransform.sizeDelta=new Vector2(.22f,.02f); header.color=new Color(.35f,1f,.92f);
+            Label=LabVisuals.Label(tablet,"",new Vector3(0,-.01f,-.0062f),.015f);
+            var face=Label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
+            Label.rectTransform.sizeDelta=new Vector2(.22f,.135f); Label.color=Color.white; Label.alignment=TMPro.TextAlignmentOptions.TopLeft;
+            Label.enableAutoSizing=true; Label.fontSizeMin=.06f; Label.fontSizeMax=.16f;
         }
         void BuildReactionEffects(float bottom)
         {
@@ -238,9 +261,9 @@ namespace MoleculeLab
             Grab.selectExited.AddListener(_=>applied=false);
             glow=LabVisuals.Shape("Ready glow",PrimitiveType.Sphere,transform,new Vector3(0,.042f+height+.02f,0),Vector3.one*.035f,colour,false); glow.SetActive(false);
             BuildEffect(height);
-            var plate=LabVisuals.Label(station.transform,name,station.transform.InverseTransformPoint(home)+new Vector3(0,.043f,-.062f),.018f);
-            var face=plate.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
-            plate.transform.localRotation=Quaternion.Euler(90,0,0); plate.rectTransform.sizeDelta=new Vector2(.17f,.05f); plate.color=Color.white; plate.fontStyle=FontStyles.Bold;
+            // A handwritten paper tag taped to the table in front of the tool, each one a little askew.
+            LabelCraft.PaperNote(station.transform,"Tool tag "+name,station.transform.InverseTransformPoint(home)+new Vector3(0,.042f,-.062f),LabelCraft.Flat,new Vector2(.15f,.045f),
+                "<b>"+name+"</b>",.2f,null,(name.Length%3-1)*4f);
         }
         void BuildEffect(float height)
         {

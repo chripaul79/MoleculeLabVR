@@ -67,12 +67,9 @@ namespace MoleculeLab
                         socket.localPosition=AtomSpots[i%AtomSpots.Length]; sockets.Add(socket); symbols.Add(element.symbol);
                     }
                     // Name plate on the shelf in front of the beaker, tilted up so it reads from standing height without covering the atoms.
-                    var label=LabVisuals.Label(beaker,"<b>"+element.symbol+"</b>  <size=70%>"+element.displayName+"</size>",new Vector3(0,.004f,-BeakerRadius-.045f),.034f);
-                    var face=label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
-                    label.transform.localRotation=Quaternion.Euler(90,0,0); // flat on the table, like the other table text
-                    label.rectTransform.sizeDelta=new Vector2(.28f,.06f);
-                    label.color=onTable?Color.white:new Color(.1f,.14f,.2f); // readable on the wooden table / the light shelf
-                    if(onTable) { label.outlineWidth=.25f; label.outlineColor=new Color32(30,20,10,255); }
+                    // A reagent sticker wrapped around the front of the glass, its band in the element's colour.
+                    LabelCraft.CurvedSticker(beaker,"Reagent sticker",BeakerRadius+.0015f,BeakerHeight*.42f,new Vector2(.13f,.065f),
+                        "<size=150%><b>"+element.symbol+"</b></size>  "+element.displayName,element.color,.2f);
                 }
             }
             Sockets=sockets.ToArray(); SocketSymbols=symbols.ToArray();

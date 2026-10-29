@@ -60,9 +60,66 @@ namespace MoleculeLab
             for(var i=0;i<4;i++) Box("Floor joint",new Vector3(-1.5f+i,0,centre),new Vector3(.008f,.002f,depth),Metal);
             Box("Gallery light housing",new Vector3(0,2.93f,centre),new Vector3(2.6f,.07f,1.3f),Metal);
             Box("Gallery light",new Vector3(0,2.885f,centre),new Vector3(2.5f,.02f,1.2f),Light);
-            Sign("MOLECULE GALLERY",new Vector3(0,2.3f,RoomEnd+.07f),.07f,Dark);
-            counter=Sign("",new Vector3(0,1.95f,RoomEnd+.07f),.03f,Dark);
-            counter.rectTransform.sizeDelta=new Vector2(3,.3f);
+            ExhibitionPanel();
+            EntranceSign();
+        }
+        static readonly Color Navy=new Color(.07f,.11f,.2f), Brass=new Color(.78f,.62f,.3f), Gold=new Color(1f,.83f,.45f), Cream=new Color(.93f,.9f,.82f);
+        /// <summary>A ball-and-stick model in relief on a sign (atoms: position, radius, colour; bonds: atom pairs).</summary>
+        static void Relief(Transform parent,(Vector3 p,float r,Color c)[] atoms,(int a,int b)[] bonds)
+        {
+            foreach(var (p,r,c) in atoms) LabVisuals.Shape("Relief atom",PrimitiveType.Sphere,parent,p,Vector3.one*r*2,c,false);
+            foreach(var (a,b) in bonds)
+            {
+                var from=atoms[a].p; var to=atoms[b].p; var axis=to-from;
+                var stick=LabVisuals.Shape("Relief bond",PrimitiveType.Cylinder,parent,(from+to)*.5f,new Vector3(.018f,axis.magnitude*.5f,.018f),new Color(.82f,.84f,.86f),false).transform;
+                stick.localRotation=Quaternion.FromToRotation(Vector3.up,axis);
+            }
+        }
+        /// <summary>
+        /// The end wall: a framed museum panel in navy and brass with the gallery's name in gold, a water and a methane model
+        /// in relief either side, and an engraved brass plaque underneath counting the molecules on display.
+        /// </summary>
+        void ExhibitionPanel()
+        {
+            // Built facing +z (into the gallery); the wall face may move forward when the classroom tiles it, so stand it off.
+            var panel=new GameObject("Exhibition panel").transform; panel.SetParent(transform,false);
+            panel.localPosition=new Vector3(0,2.08f,RoomEnd+.17f); panel.localRotation=Quaternion.Euler(0,180,0); // label space: face -z
+            LabVisuals.Shape("Board",PrimitiveType.Cube,panel,new Vector3(0,0,.01f),new Vector3(2.3f,.86f,.03f),Navy,false);
+            foreach(var (p,s) in new[]{(new Vector3(0,.44f,-.006f),new Vector3(2.36f,.03f,.04f)),(new Vector3(0,-.44f,-.006f),new Vector3(2.36f,.03f,.04f)),
+                                       (new Vector3(-1.165f,0,-.006f),new Vector3(.03f,.91f,.04f)),(new Vector3(1.165f,0,-.006f),new Vector3(.03f,.91f,.04f))})
+                LabVisuals.Shape("Brass frame",PrimitiveType.Cube,panel,p,s,Brass,false);
+            LabVisuals.Shape("Gold rule",PrimitiveType.Cube,panel,new Vector3(0,-.02f,-.006f),new Vector3(1.2f,.008f,.004f),Brass,false);
+            var title=LabelCraft.Print(panel,"<b>MOLECULE GALLERY</b>",new Vector3(0,.13f,-.007f),new Vector2(1.5f,.2f),1.4f,Gold);
+            title.characterSpacing=12; title.textWrappingMode=TextWrappingModes.NoWrap;
+            LabelCraft.Print(panel,"<i>Every molecule on these tables was built in this lab.\nPick one up to learn what it is and what it is used for.</i>",new Vector3(0,-.18f,-.007f),new Vector2(1.5f,.2f),.42f,Cream);
+            // Water on the left, methane on the right, standing out from the board.
+            var white=new Color(.95f,.95f,.95f);
+            var left=new GameObject("Water relief").transform; left.SetParent(panel,false); left.localPosition=new Vector3(-.82f,.0f,-.06f);
+            Relief(left,new[]{(Vector3.zero,.075f,new Color(.85f,.15f,.12f)),(new Vector3(-.12f,-.09f,0),.045f,white),(new Vector3(.12f,-.09f,0),.045f,white)},new[]{(0,1),(0,2)});
+            var right=new GameObject("Methane relief").transform; right.SetParent(panel,false); right.localPosition=new Vector3(.82f,.0f,-.06f);
+            Relief(right,new[]{(Vector3.zero,.07f,new Color(.2f,.2f,.22f)),(new Vector3(0,.15f,0),.042f,white),(new Vector3(-.13f,-.06f,-.02f),.042f,white),
+                (new Vector3(.13f,-.06f,-.02f),.042f,white),(new Vector3(0,-.07f,-.1f),.042f,white)},new[]{(0,1),(0,2),(0,3),(0,4)});
+            // The count, engraved on a brass plaque with screws.
+            counter=LabelCraft.MetalPlate(transform,"Gallery counter plaque",new Vector3(0,1.5f,RoomEnd+.175f),Quaternion.Euler(0,180,0),new Vector2(.9f,.13f),"",.5f);
+            foreach(var r in counter.transform.parent.GetComponentsInChildren<Renderer>()) if(r.name=="Plate") r.sharedMaterial=LabVisuals.Material(Brass);
+        }
+        /// <summary>
+        /// A double-sided sign hanging on two rods under the opening's header: "MOLECULE GALLERY" towards the lab and
+        /// "BACK TO THE LAB" towards the gallery.
+        /// </summary>
+        void EntranceSign()
+        {
+            var sign=new GameObject("Gallery entrance sign").transform; sign.SetParent(transform,false); sign.localPosition=new Vector3(0,2.3f,RoomStart);
+            LabVisuals.Shape("Sign board",PrimitiveType.Cube,sign,Vector3.zero,new Vector3(1.3f,.26f,.03f),Navy,false);
+            foreach(var y in new[]{.12f,-.12f}) LabVisuals.Shape("Brass edge",PrimitiveType.Cube,sign,new Vector3(0,y,0),new Vector3(1.32f,.018f,.036f),Brass,false);
+            foreach(var x in new[]{-.55f,.55f}) LabVisuals.Shape("Hanging rod",PrimitiveType.Cylinder,sign,new Vector3(x,.2f,0),new Vector3(.012f,.08f,.012f),new Color(.3f,.3f,.32f),false);
+            // Lab side (+z): text faces the lab.
+            var front=new GameObject("Lab side").transform; front.SetParent(sign,false); front.localPosition=new Vector3(0,0,.016f); front.localRotation=Quaternion.Euler(0,180,0);
+            var title=LabelCraft.Print(front,"<b>MOLECULE GALLERY</b>  <size=60%>your molecules on display</size>",new Vector3(0,0,-.001f),new Vector2(1.2f,.18f),.9f,Gold);
+            title.textWrappingMode=TextWrappingModes.NoWrap;
+            // Gallery side (-z).
+            var back=new GameObject("Gallery side").transform; back.SetParent(sign,false); back.localPosition=new Vector3(0,0,-.016f);
+            LabelCraft.Print(back,"<b>BACK TO THE LAB</b>",new Vector3(0,0,-.001f),new Vector2(1.2f,.18f),.9f,Gold).textWrappingMode=TextWrappingModes.NoWrap;
         }
         Transform Table(int index)
         {
@@ -116,6 +173,7 @@ namespace MoleculeLab
         /// <summary>The single collider used to pick the exhibit up.</summary>
         public SphereCollider GrabZone => grabZone;
         TextMeshPro label;
+        Transform placard;
         LabController lab;
         Vector3 slot;
         bool placed;
@@ -158,8 +216,8 @@ namespace MoleculeLab
             Grab.throwOnDetach=false; Grab.movementType=XRBaseInteractable.MovementType.Instantaneous; Grab.useDynamicAttach=true;
             Grab.firstSelectEntered.AddListener(_=>{ if(lab!=null) lab.ExhibitGrabbed(this); });
             Grab.lastSelectExited.AddListener(_=>{ if(lab!=null) lab.ExhibitReleased(this); });
-            label=LabVisuals.Label(transform.parent,"",Vector3.zero,.024f); label.rectTransform.sizeDelta=new Vector2(.46f,.12f);
-            var face=label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); } // lies flat on the table
+            // A museum placard on the table edge in front of the stand.
+            label=LabelCraft.Placard(transform.parent,"Exhibit placard",Vector3.zero,Quaternion.identity,new Vector2(.2f,.06f),out placard);
         }
         public void SetSlot(Vector3 world)
         {
@@ -168,14 +226,14 @@ namespace MoleculeLab
             var gallery=transform.parent; var local=gallery.InverseTransformPoint(world);
             var row=Mathf.RoundToInt((GalleryRoom.FirstTableZ-local.z)/GalleryRoom.TableSpacing); var tableZ=GalleryRoom.FirstTableZ-row*GalleryRoom.TableSpacing;
             var side=local.z>=tableZ?1f:-1f;
-            label.transform.localPosition=new Vector3(local.x,GalleryRoom.TableTop+.004f,tableZ+side*.355f);
-            label.transform.localRotation=Quaternion.Euler(90,side>0?180:0,0);
+            placard.localPosition=new Vector3(local.x,GalleryRoom.TableTop,tableZ+side*.33f);
+            placard.localRotation=Quaternion.Euler(0,side>0?180:0,0);
             if(!placed || Grab==null || !Grab.isSelected) { if(!placed) transform.position=world; placed=true; }
         }
         public void UpdateLabel(GalleryEntry entry)
         {
             Entry=entry;
-            label.text=entry.name+"\n"+entry.formula+(entry.timesBuilt>1?"  x"+entry.timesBuilt:"");
+            label.text="<b>"+entry.name+"</b>\n<size=75%>"+entry.formula+(entry.timesBuilt>1?"   built "+entry.timesBuilt+"x":"")+"</size>";
         }
         void Update()
         {
@@ -183,6 +241,6 @@ namespace MoleculeLab
             transform.position=Vector3.Lerp(transform.position,slot,1-Mathf.Exp(-Time.deltaTime*6));
             if(lab==null || !lab.ReducedEffects) model.Rotate(0,Time.deltaTime*20,0,Space.World);
         }
-        void OnDestroy() { if(label!=null) Destroy(label.gameObject); }
+        void OnDestroy() { if(placard!=null) Destroy(placard.gameObject); }
     }
 }

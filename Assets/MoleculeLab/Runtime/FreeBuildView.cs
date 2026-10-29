@@ -53,6 +53,7 @@ namespace MoleculeLab
         readonly List<Vector3> shown=new List<Vector3>();
         readonly List<Transform[]> bondShapes=new List<Transform[]>();
         readonly List<Transform> guides=new List<Transform>();
+        readonly List<LineRenderer> rays=new List<LineRenderer>();
         readonly List<(int atom,Vector3 direction)> guideSites=new List<(int,Vector3)>();
         LineRenderer arc,ring;
         TextMeshPro label,statusLabel;
@@ -74,7 +75,7 @@ namespace MoleculeLab
             arc=Line("Free bond preview",2,.003f); ring=Line("Free bond target",33,.004f);
             label=LabVisuals.Label(transform,"",Vector3.zero,.024f); label.gameObject.SetActive(false);
             statusLabel=LabVisuals.Label(transform,"",Vector3.up*.15f,.03f);
-            statusLabel.rectTransform.sizeDelta=new Vector2(1.4f,.3f);
+            statusLabel.rectTransform.sizeDelta=new Vector2(1.4f,.3f); statusLabel.gameObject.SetActive(false); // shown on the hologram tag
             // The whole structure: picked up by its bonds, then put down again it falls back onto the bench.
             var body=gameObject.AddComponent<Rigidbody>(); body.isKinematic=true; body.useGravity=false; body.interpolation=RigidbodyInterpolation.None;
             Carry=gameObject.AddComponent<XRGrabInteractable>();
@@ -101,7 +102,9 @@ namespace MoleculeLab
         public void SetStatus(string text,Color color)
         {
             if(statusLabel==null) return;
+            var changed=statusLabel.text!=text;
             statusLabel.text=text; statusLabel.color=color;
+            if(changed) ShowStatus(3f);
         }
 
         // ---------- editing ----------
@@ -304,14 +307,15 @@ namespace MoleculeLab
         }
         void DrawPreview(Vector3 from,Vector3 to,bool ready,string text)
         {
-            arc.enabled=true; ring.enabled=true; label.gameObject.SetActive(true);
+            arc.enabled=true; ring.enabled=true;
+            lab.Tag?.Request(transform,text,StatusText,2,.25f);
             arc.SetPosition(0,from); arc.SetPosition(1,to);
             var facing=Camera.main!=null?to-Camera.main.transform.position:Vector3.forward;
             var rotation=Quaternion.FromToRotation(Vector3.forward,facing.sqrMagnitude>1e-6f?facing.normalized:Vector3.forward);
             var radius=ready?.04f:.026f;
             for(var i=0;i<ring.positionCount;i++) { var angle=i*Mathf.PI*2/(ring.positionCount-1); ring.SetPosition(i,to+rotation*new Vector3(Mathf.Cos(angle),Mathf.Sin(angle),0)*radius); }
             ring.widthMultiplier=ready?.005f:.002f;
-            label.transform.position=to+Vector3.up*.08f; label.text=text;
+
             if(ready && !wasReady) lab.ReadyCue(); wasReady=ready;
         }
         void HidePreviewLines()
@@ -380,10 +384,48 @@ namespace MoleculeLab
             }
             Settle();
             UpdateBonds();
+            if(Carry!=null && Carry.isSelected) ShowStatus(1f);
             var top=shown.Count==0?0:shown.Max(p=>p.y);
             statusLabel.transform.localPosition=new Vector3(Structure.Count==0?0:shown.Average(p=>p.x),top+.13f,Structure.Count==0?0:shown.Average(p=>p.z));
             var showGuides=lab.Mode==LabMode.Free && !Locked && dragging<0;
             for(var k=0;k<guides.Count;k++) if(guides[k].gameObject.activeSelf!=(showGuides && k<guideSites.Count)) guides[k].gameObject.SetActive(showGuides && k<guideSites.Count);
+            DrawRays(showGuides && lab.DirectionRays);
+        }
+        /// <summary>
+        /// The same direction rays as recipe building: a small ring on the atom's surface and four lines fanning out to each
+        /// open bond's guide dot, so the player sees where (and at what angle) the next atom goes. Off in Settings.
+        /// </summary>
+        /// <summary>The structure's status ("Not complete: 3 open bonds...") on the hologram tag beside it.</summary>
+        void ShowStatus(float seconds)
+        {
+            if(lab==null || lab.Tag==null || statusLabel==null || statusLabel.text.Length==0) return;
+            var text=statusLabel.text; var newline=text.IndexOf('\n');
+            lab.Tag.Request(transform,newline>=0?text.Substring(0,newline):text,newline>=0?text.Substring(newline+1):"",1,seconds);
+        }
+        void DrawRays(bool show)
+        {
+            var count=show?guideSites.Count:0;
+            while(rays.Count<count)
+            {
+                var go=new GameObject("Bond direction ray"); go.transform.SetParent(transform,false); var line=go.AddComponent<LineRenderer>();
+                line.useWorldSpace=true; line.positionCount=17; line.widthMultiplier=.0018f; line.sharedMaterial=LabVisuals.Material(new Color(.2f,.75f,.65f));
+                rays.Add(line);
+            }
+            var points=new Vector3[17];
+            for(var k=0;k<rays.Count;k++)
+            {
+                var active=k<count; if(rays[k].enabled!=active) rays[k].enabled=active;
+                if(!active) continue;
+                var (atom,direction)=guideSites[k]; if(atom>=shown.Count) { rays[k].enabled=false; continue; }
+                var anchor=transform.TransformPoint(shown[atom]); var end=transform.TransformPoint(shown[atom]+direction*GuideLength(atom));
+                var world=(end-anchor).normalized; if(world.sqrMagnitude<1e-6f) { rays[k].enabled=false; continue; }
+                var radius=atomShapes[atom].lossyScale.x*.5f; var patch=anchor+world*(radius+.004f);
+                var rotation=Quaternion.FromToRotation(Vector3.forward,world);
+                var side=rotation*Vector3.right*.03f; var up=rotation*Vector3.up*.03f;
+                for(var j=0;j<9;j++) { var angle=j*Mathf.PI/4; points[j]=patch+rotation*new Vector3(Mathf.Cos(angle),Mathf.Sin(angle),0)*.013f; }
+                points[9]=patch; points[10]=end+side; points[11]=patch; points[12]=end-side; points[13]=patch; points[14]=end+up; points[15]=patch; points[16]=end-up;
+                rays[k].SetPositions(points);
+            }
         }
         /// <summary>
         /// Gravity for the structure: unless it (or one of its atoms) is held, it falls until its lowest atom rests on the bench

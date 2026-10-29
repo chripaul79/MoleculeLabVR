@@ -49,9 +49,9 @@ namespace MoleculeLab
                 // Pressed up close or with a ray from a distance: either way it resets, and the cap visibly goes down.
                 pressedUntil=Time.time+.35f; Fire();
             });
-            var label=LabVisuals.Label(transform,text,new Vector3(0,.13f,.07f),.02f);
-            var face=label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
-            label.color=Color.white;
+            // A sticker lying on the surface just behind the button, readable from the front.
+            // An engraved aluminium plate screwed to the surface behind the button.
+            LabelCraft.MetalPlate(transform,"Button plate",new Vector3(0,.001f,.115f),LabelCraft.Flat,new Vector2(.2f,.055f),"<b>"+text.Replace("\n","</b>\n<size=70%>")+"</size>",.22f);
         }
         IEnumerable<Vector3> Probes()
         {
@@ -135,11 +135,10 @@ namespace MoleculeLab
             }
             Rim("Rim",HoleRadius,.012f,new Color(.78f,.8f,.82f)); Rim("Glow ring",HoleRadius+.02f,.006f,new Color(.3f,.85f,.75f));
             // A plate on the bench in front of the hole, lying flat and readable from where the player stands.
-            var sign=LabVisuals.Label(transform,"GALLERY\n<size=60%>drop here to keep</size>",new Vector3(0,top+.002f,-HoleRadius-.07f),.032f);
-            var face=sign.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
-            sign.transform.localRotation=Quaternion.Euler(90,0,0); sign.rectTransform.sizeDelta=new Vector2(.4f,.1f);
-            sign.color=new Color(.95f,.97f,1f); sign.fontStyle=FontStyles.Bold; sign.outlineWidth=.2f; sign.outlineColor=new Color32(20,24,30,255);
-            feedback=LabVisuals.Label(transform,"",new Vector3(0,.38f,0),.03f); feedback.color=Color.white;
+            // A handwritten sign taped to the bench in front of the hole, and a little LCD read-out beside it.
+            LabelCraft.PaperNote(transform,"Gallery sign",new Vector3(0,top+.001f,-HoleRadius-.065f),LabelCraft.Flat,new Vector2(.28f,.075f),
+                "<b>GALLERY</b>\n<size=70%>drop molecules here to keep them</size>",.3f,null,-3f);
+            feedback=LabelCraft.Lcd(transform,"Gallery read-out",new Vector3(HoleRadius+.12f,top,-.02f),Quaternion.Euler(0,-15,0),new Vector2(.12f,.045f));
             var opening=new GameObject("Drop zone"); opening.transform.SetParent(transform,false);
             var trigger=opening.AddComponent<BoxCollider>(); trigger.isTrigger=true; trigger.center=new Vector3(0,top+.12f,0); trigger.size=new Vector3(HoleRadius*2,.24f,HoleRadius*2);
             opening.AddComponent<BinDropZone>().bin=this;
@@ -152,14 +151,22 @@ namespace MoleculeLab
             var rim=new GameObject("Rim").AddComponent<LineRenderer>(); rim.transform.SetParent(transform,false);
             rim.useWorldSpace=false; rim.loop=true; rim.positionCount=40; rim.widthMultiplier=.012f; rim.sharedMaterial=LabVisuals.Material(new Color(.8f,.84f,.86f));
             for(var i=0;i<40;i++) { var a=i*Mathf.PI*2/40; rim.SetPosition(i,new Vector3(Mathf.Cos(a)*.2f,.805f,Mathf.Sin(a)*.2f)); }
-            var sign=LabVisuals.Label(transform,IsGallery?"GALLERY\nkeep it":"TRASH\ndiscard it",new Vector3(0,1.02f,0),.04f);
-            sign.color=Color.white; sign.fontStyle=FontStyles.Bold;
-            feedback=LabVisuals.Label(transform,"",new Vector3(0,1.22f,0),.03f); feedback.color=Color.white;
+            // A label stuck on the front of the bin (facing the bench), with feedback printed underneath it.
+            LabelCraft.PaperNote(transform,"Bin label",new Vector3(0,.6f,-.201f),Quaternion.identity,new Vector2(.24f,.15f),
+                IsGallery?"<b>GALLERY</b>\n<size=60%>keep it</size>":"<b>TRASH</b>\n<size=60%>molecules or gallery exhibits</size>",.55f,null,2f);
+            // What just went in, scribbled on the label in red marker.
+            feedback=LabelCraft.Print(transform,"",new Vector3(0,.5f,-.203f),new Vector2(.22f,.04f),.2f,new Color(.75f,.12f,.08f),ClassroomBuilder.Handwriting());
             var opening=new GameObject("Drop zone"); opening.transform.SetParent(transform,false);
             var trigger=opening.AddComponent<BoxCollider>(); trigger.isTrigger=true; trigger.center=new Vector3(0,.46f,0); trigger.size=new Vector3(.38f,.9f,.38f);
             opening.AddComponent<BinDropZone>().bin=this;
         }
         public void Flash(string text) { if(feedback==null) return; feedback.text=text; clearAt=Time.time+2.5f; }
+        /// <summary>Is this point in the floor bin or just above its opening (where something let go drops in)?</summary>
+        public bool Over(Vector3 world)
+        {
+            var local=transform.InverseTransformPoint(world);
+            return new Vector2(local.x,local.z).magnitude<.24f && local.y>.2f && local.y<1.45f;
+        }
         void Update() { if(feedback!=null && feedback.text.Length>0 && Time.time>=clearAt) feedback.text=""; }
 
         /// <summary>Called for anything inside the bin. Only released objects count, never ones still in a hand.</summary>
@@ -168,6 +175,9 @@ namespace MoleculeLab
             var body=other.attachedRigidbody; if(body==null || lab==null) return;
             var molecule=body.GetComponent<MoleculeView>();
             if(molecule!=null) { if(molecule.Grab!=null && !molecule.Grab.isSelected && molecule.State.Complete && !molecule.Docked) lab.MoleculeIntoBin(molecule,IsGallery); return; }
+            // A gallery exhibit let go over the trash leaves the gallery (one molecule at a time; Settings clears them all).
+            var exhibit=body.GetComponent<GalleryExhibit>();
+            if(exhibit!=null) { if(!IsGallery && exhibit.Grab!=null && !exhibit.Grab.isSelected) lab.ExhibitIntoTrash(exhibit); return; }
             var atom=body.GetComponent<LooseAtom>();
             if(atom!=null && !atom.OnShelf && atom.Grab!=null && !atom.Grab.isSelected) atom.ReturnHome();
         }

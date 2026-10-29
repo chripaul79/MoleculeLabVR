@@ -17,6 +17,8 @@ namespace MoleculeLab
         /// <summary>Describes compounds for the gallery hologram. Defaults to the PubChem client; tests may replace it.</summary>
         public IMoleculeInfoSource MoleculeInfoSource { get; set; }
         public MoleculeHologram Hologram => hologram;
+        /// <summary>The small hologram for moving things: the held molecule's name, building hints.</summary>
+        public HoloTag Tag { get; private set; }
         MoleculeHologram hologram;
         readonly Dictionary<string,(MoleculeInfo info,string iupac)> exhibitInfo=new Dictionary<string,(MoleculeInfo,string)>();
         readonly HashSet<string> exhibitInfoLoading=new HashSet<string>();
@@ -27,6 +29,7 @@ namespace MoleculeLab
             Gallery=new MoleculeGallery(Path.Combine(Application.persistentDataPath,"gallery.json"));
             galleryRoom.Show(Gallery,elements);
             hologram=MoleculeHologram.Create(this,font);
+            Tag=HoloTag.Create(this,font,"Hint hologram");
         }
         /// <summary>Switches to another gallery file; null keeps the gallery in memory only (used by tests).</summary>
         public void UseGalleryFile(string path)
@@ -55,7 +58,10 @@ namespace MoleculeLab
         public void ExhibitReleased(GalleryExhibit exhibit)
         {
             if(hologram!=null) hologram.HideLater(exhibit,hologramLinger);
-            if(exhibit!=null && OverVessel(exhibit.transform.position)) CopyExhibitIntoVessel(exhibit.Entry);
+            if(exhibit==null) return;
+            if(OverVessel(exhibit.transform.position)) CopyExhibitIntoVessel(exhibit.Entry);
+            // Let go over the trash bin: it leaves the gallery (checked here, because the exhibit flies home straight away).
+            else if(TrashBin!=null && TrashBin.Over(exhibit.transform.position)) ExhibitIntoTrash(exhibit);
         }
         IEnumerator LoadExhibitInfo(GalleryEntry entry)
         {
@@ -75,6 +81,17 @@ namespace MoleculeLab
             if(hologram!=null) hologram.SetInfo(entry.id,info,iupac);
         }
         string GalleryNote(bool isNew) => isNew?" New in the gallery behind you!":" Its gallery count went up.";
+        /// <summary>An exhibit dropped in the trash bin leaves the gallery (and its saved file).</summary>
+        public void ExhibitIntoTrash(GalleryExhibit exhibit)
+        {
+            if(exhibit==null || exhibit.Entry==null || Gallery==null) return;
+            var entry=exhibit.Entry;
+            if(hologram!=null && hologram.Target==exhibit) hologram.Hide();
+            if(!Gallery.Remove(entry.id)) return;
+            galleryRoom.Show(Gallery,elements);
+            TrashBin?.Flash("Removed: "+entry.name);
+            Notify(entry.name+" was removed from the gallery.",true);
+        }
         /// <summary>Press twice within four seconds: the gallery is shared across sessions, so one click must not wipe it.</summary>
         public void ClearGallery()
         {
