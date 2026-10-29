@@ -68,7 +68,7 @@ namespace MoleculeLab.Tests
         static bool TestRunActive;
         sealed class Callbacks : ICallbacks
         {
-            public void RunStarted(ITestAdaptor testsToRun) { TestRunActive=true; FastPlayMode(true); }
+            public void RunStarted(ITestAdaptor testsToRun) { TestRunActive=true; SessionState.SetBool("MoleculeLab.PreviewSuspended",true); FastPlayMode(true); } // no edit-mode classroom preview during tests
             public void TestStarted(ITestAdaptor test) { }
             public void TestFinished(ITestResultAdaptor result)
             {
@@ -79,7 +79,7 @@ namespace MoleculeLab.Tests
             }
             public void RunFinished(ITestResultAdaptor result)
             {
-                TestRunActive=false; FastPlayMode(false);
+                TestRunActive=false; SessionState.SetBool("MoleculeLab.PreviewSuspended",false); FastPlayMode(false);
                 if(!SessionState.GetBool(Running,false)) return;
                 SessionState.SetBool(Running,false);
                 File.AppendAllText(ResultFile,$"DONE passed={result.PassCount} failed={result.FailCount} skipped={result.SkipCount} inconclusive={result.InconclusiveCount}\n");

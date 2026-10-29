@@ -95,7 +95,7 @@ namespace MoleculeLab
             definition.bonds=graph.Bonds.Select(b=>new BondDefinition(b.A,b.B,b.Order)).ToArray();
             definition.seedIndex=Mathf.Max(0,graph.Symbols.FindIndex(s=>s!="H"));
             definition.geometry="Idealised in-lab geometry"; definition.electronicState=origin;
-            if(!definition.IsValid(out var error)) { Debug.LogWarning(name+" cannot be modelled: "+error); Destroy(definition); return null; }
+            if(!definition.IsValid(out var error)) { Debug.LogWarning(name+" cannot be modelled: "+error); LabVisuals.Discard(definition); return null; }
             madeDefinitions.Add(definition); ownedResources.Add(definition);
             return definition;
         }

@@ -68,7 +68,7 @@ namespace MoleculeLab
                     LabVisuals.Shape("Empty socket marker",PrimitiveType.Cylinder,tray,new Vector3(p.x,.016f,p.z),new Vector3(.065f,.002f,.065f),Dark,false);
                 }
                 var label=LabVisuals.Label(tray,"",new Vector3(0,-.025f,-.165f),.02f);
-                var face=label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
+                var face=label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; LabVisuals.Discard(face); }
                 label.rectTransform.sizeDelta=new Vector2(.36f,.065f); labels[b]=label;
             }
         }

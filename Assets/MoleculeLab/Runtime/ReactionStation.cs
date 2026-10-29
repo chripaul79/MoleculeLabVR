@@ -64,7 +64,7 @@ namespace MoleculeLab
             if(glass==null) { glass=new Material(Canvas.GetDefaultCanvasMaterial()); glass.name="Vessel glass"; glass.color=new Color(.78f,.93f,1f,.13f); }
             void Wall(Vector3 p,Vector3 s)
             {
-                var w=GameObject.CreatePrimitive(PrimitiveType.Cube); w.name="Vessel wall"; Destroy(w.GetComponent<Collider>());
+                var w=GameObject.CreatePrimitive(PrimitiveType.Cube); w.name="Vessel wall"; LabVisuals.Discard(w.GetComponent<Collider>());
                 w.transform.SetParent(transform,false); w.transform.localPosition=p; w.transform.localScale=s;
                 var r=w.GetComponent<Renderer>(); r.sharedMaterial=glass; r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
             }
@@ -105,7 +105,7 @@ namespace MoleculeLab
         void BuildTablet()
         {
             var stand=new GameObject("Tablet on stand").transform; stand.SetParent(transform,false);
-            stand.localPosition=new Vector3(-.42f,0,.0f); stand.localRotation=Quaternion.Euler(0,12,0); // turned slightly towards the middle of the table
+            stand.localPosition=new Vector3(-.42f,0,.0f); stand.localRotation=Quaternion.identity; // facing straight out, like the vessel
             var metal=new Color(.78f,.8f,.83f); var black=new Color(.07f,.075f,.085f);
             LabVisuals.Shape("Stand foot",PrimitiveType.Cube,stand,new Vector3(0,.005f,.025f),new Vector3(.13f,.01f,.11f),metal,true);
             LabVisuals.Shape("Stand lip",PrimitiveType.Cube,stand,new Vector3(0,.018f,-.012f),new Vector3(.13f,.016f,.012f),metal,false);
@@ -118,10 +118,10 @@ namespace MoleculeLab
             LabVisuals.Shape("Screen",PrimitiveType.Cube,tablet,new Vector3(0,0,-.0052f),new Vector3(.236f,.166f,.001f),black,false);
             LabVisuals.Shape("Camera dot",PrimitiveType.Sphere,tablet,new Vector3(0,.0855f,-.0052f),Vector3.one*.004f,new Color(.2f,.2f,.22f),false);
             var header=LabVisuals.Label(tablet,"<b>REACTION VESSEL</b>",new Vector3(0,.068f,-.0062f),.012f);
-            var hf=header.GetComponent<FaceViewer>(); if(hf!=null) { hf.enabled=false; Destroy(hf); }
+            var hf=header.GetComponent<FaceViewer>(); if(hf!=null) { hf.enabled=false; LabVisuals.Discard(hf); }
             header.rectTransform.sizeDelta=new Vector2(.22f,.02f); header.color=new Color(.35f,1f,.92f);
             Label=LabVisuals.Label(tablet,"",new Vector3(0,-.01f,-.0062f),.015f);
-            var face=Label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
+            var face=Label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; LabVisuals.Discard(face); }
             Label.rectTransform.sizeDelta=new Vector2(.22f,.135f); Label.color=Color.white; Label.alignment=TMPro.TextAlignmentOptions.TopLeft;
             Label.enableAutoSizing=true; Label.fontSizeMin=.06f; Label.fontSizeMax=.16f;
         }
@@ -142,7 +142,7 @@ namespace MoleculeLab
             bubbles=ReactionEffects.Create("Bubbles",transform,floor,1f,.16f,.016f,ReactionEffects.Fade(new Color(.8f,.95f,1f),new Color(.9f,1f,1f),.75f),120);
             var bubbleShape=bubbles.shape; bubbleShape.shapeType=ParticleSystemShapeType.Box; bubbleShape.scale=new Vector3(VesselWidth*.7f,VesselDepth*.7f,.01f);
             // A shallow liquid layer for the acid reaction, invisible until it is used.
-            liquid=GameObject.CreatePrimitive(PrimitiveType.Cube).transform; liquid.name="Vessel liquid"; Destroy(liquid.GetComponent<Collider>());
+            liquid=GameObject.CreatePrimitive(PrimitiveType.Cube).transform; liquid.name="Vessel liquid"; LabVisuals.Discard(liquid.GetComponent<Collider>());
             liquid.SetParent(transform,false); liquid.localPosition=new Vector3(0,bottom+.025f,0); liquid.localScale=new Vector3(VesselWidth-.012f,.04f,VesselDepth-.012f);
             liquidMaterial=new Material(Canvas.GetDefaultCanvasMaterial()){name="Vessel liquid"};
             var lr=liquid.GetComponent<Renderer>(); lr.sharedMaterial=liquidMaterial; lr.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off; liquid.gameObject.SetActive(false);
@@ -232,7 +232,7 @@ namespace MoleculeLab
             if(model!=null)
             {
                 var m=Instantiate(model,transform,false); m.name="Model";
-                foreach(var c in m.GetComponentsInChildren<Collider>(true)) { c.enabled=false; Destroy(c); }
+                foreach(var c in m.GetComponentsInChildren<Collider>(true)) { c.enabled=false; LabVisuals.Discard(c); }
                 foreach(var b in m.GetComponentsInChildren<MonoBehaviour>(true)) b.enabled=false;
                 var renderers=m.GetComponentsInChildren<Renderer>();
                 if(renderers.Length>0)
@@ -248,7 +248,7 @@ namespace MoleculeLab
                     m.transform.position+=new Vector3(transform.position.x-bounds.center.x,transform.position.y+.042f-bounds.min.y,transform.position.z-bounds.center.z);
                     have=true;
                 }
-                else Destroy(m);
+                else LabVisuals.Discard(m);
             }
             if(!have) // simple stand-in: a coloured bottle
             {

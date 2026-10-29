@@ -65,7 +65,7 @@ namespace MoleculeLab
         void RebuildMenu()
         {
             if(menuRoot==null) return;
-            if(pageObject!=null) { pageObject.SetActive(false); Destroy(pageObject); }
+            if(pageObject!=null) { pageObject.SetActive(false); LabVisuals.Discard(pageObject); }
             pageObject=Rect("Current menu page",menuRoot,Vector2.zero,new Vector2(1800,900)).gameObject;
             var page=pageObject.transform; activateButton=null;
             lesson=Text(page,hints?instructions[lessonStep]:"Hints hidden. Essential placement feedback stays enabled.",new Vector2(430,265),new Vector2(780,170),26,Color.white);

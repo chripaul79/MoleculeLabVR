@@ -144,7 +144,7 @@ namespace MoleculeLab
             CancelGrabs();
             centroidExclude=-1; // the released atom is the one being removed
             var token=Structure.RemoveAtom(index);
-            var shape=atomShapes[index]; shape.gameObject.SetActive(false); Destroy(shape.gameObject);
+            var shape=atomShapes[index]; shape.gameObject.SetActive(false); LabVisuals.Discard(shape.gameObject);
             atomShapes.RemoveAt(index); grabs.RemoveAt(index); handles.RemoveAt(index); shown.RemoveAt(index);
             for(var i=index;i<handles.Count;i++) handles[i].Index=i;
             SelectedBond=Mathf.Min(SelectedBond,Structure.Graph.Bonds.Count-1);
@@ -339,7 +339,7 @@ namespace MoleculeLab
         }
         void RebuildBonds()
         {
-            foreach(var set in bondShapes) foreach(var shape in set) if(shape!=null) { shape.gameObject.SetActive(false); Destroy(shape.gameObject); }
+            foreach(var set in bondShapes) foreach(var shape in set) if(shape!=null) { shape.gameObject.SetActive(false); LabVisuals.Discard(shape.gameObject); }
             bondShapes.Clear();
             for(var i=0;i<Structure.Graph.Bonds.Count;i++)
             {

@@ -102,7 +102,7 @@ namespace MoleculeLab
         }
         void Strip(string name,Vector3 position,Vector3 size,Material material)
         {
-            var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=name; Destroy(go.GetComponent<Collider>());
+            var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=name; LabVisuals.Discard(go.GetComponent<Collider>());
             go.transform.SetParent(transform,false); go.transform.localPosition=position; go.transform.localScale=size;
             var r=go.GetComponent<Renderer>(); r.sharedMaterial=material; r.shadowCastingMode=ShadowCastingMode.Off;
         }
@@ -142,7 +142,7 @@ namespace MoleculeLab
         int TileWall(string name,Vector3 from,Vector3 to,float yaw)
         {
             var probe=Place(kit.labWall,"probe",Vector3.zero,0,Fit.Height,OldCeiling,true,false); if(probe==null) return 0;
-            var natural=Mathf.Max(.3f,Size(probe).x); Destroy(probe.gameObject); PlacedModels--;
+            var natural=Mathf.Max(.3f,Size(probe).x); LabVisuals.Discard(probe.gameObject); PlacedModels--;
             var length=Vector3.Distance(from,to); var count=Mathf.Max(1,Mathf.RoundToInt(length/natural)); var segment=length/count;
             var placed=0;
             for(var i=0;i<count;i++)
@@ -157,7 +157,7 @@ namespace MoleculeLab
         float Tiles(GameObject prefab,string name,Vector3 centre,Vector2 size,bool ceiling)
         {
             var probe=Place(prefab,"probe",Vector3.zero,0,Fit.Native,0,false,false); if(probe==null) return 0;
-            var cell=Size(probe); Destroy(probe.gameObject); PlacedModels--;
+            var cell=Size(probe); LabVisuals.Discard(probe.gameObject); PlacedModels--;
             var nx=Mathf.Clamp(Mathf.RoundToInt(size.x/Mathf.Max(.2f,cell.x)),1,12); var nz=Mathf.Clamp(Mathf.RoundToInt(size.y/Mathf.Max(.2f,cell.z)),1,12);
             var thickness=0f;
             for(var i=0;i<nx;i++) for(var j=0;j<nz;j++)
@@ -197,6 +197,8 @@ namespace MoleculeLab
                 else if(OldRearFace-local.z<.12f && size.z<.15f && size.x<4f) push=new Vector3(0,0,-ShellDepth);
                 else continue;
                 if(b.min.y<.02f && b.max.y>2.9f) continue; // full-height structure, not decoration
+                // Statically batched decor can't move once the game runs (it stays hidden behind the panels); the edit-mode preview matches that.
+                if(!Application.isPlaying && renderers.Any(r=>r.gameObject.isStatic)) continue;
                 t.position+=environment.transform.TransformVector(push); moved.Add(t);
             }
         }
@@ -227,7 +229,8 @@ namespace MoleculeLab
                 // moved visually once the scene runs, so those are simply hidden.
                 if(GalleryFace-Mathf.Abs(local.x)<.2f && b.size.x<.3f && local.z>GalleryRoom.RoomStart)
                 {
-                    if(renderers.Any(r=>r.isPartOfStaticBatch)) t.gameObject.SetActive(false);
+                    // (In the edit-mode preview nothing is batched yet: static objects are treated as they will be in Play mode.)
+                    if(renderers.Any(r=>r.isPartOfStaticBatch || !Application.isPlaying && r.gameObject.isStatic)) t.gameObject.SetActive(false);
                     else t.position+=env.TransformVector(new Vector3(Mathf.Sign(local.x)*Widen,0,0));
                     moved.Add(t);
                 }
@@ -239,7 +242,7 @@ namespace MoleculeLab
             {
                 if(t.name!="Left wall" && t.name!="Right wall" && t.name!="Rear wall") continue;
                 var r=t.GetComponent<Renderer>(); if(r==null) continue; r.enabled=false;
-                var copy=GameObject.CreatePrimitive(PrimitiveType.Cube); copy.name=t.name+" (wider room)"; Destroy(copy.GetComponent<Collider>());
+                var copy=GameObject.CreatePrimitive(PrimitiveType.Cube); copy.name=t.name+" (wider room)"; LabVisuals.Discard(copy.GetComponent<Collider>());
                 copy.transform.SetParent(transform,false);
                 copy.transform.position=t.position; copy.transform.rotation=t.rotation; copy.transform.localScale=t.lossyScale;
                 copy.GetComponent<Renderer>().sharedMaterial=wallPaint;
@@ -341,7 +344,7 @@ namespace MoleculeLab
             horizon.localPosition=new Vector3(-.006f,-height*.32f,0);
             void Bar(string n,Vector3 p,Vector3 s,Material m)
             {
-                var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=n; Destroy(go.GetComponent<Collider>());
+                var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=n; LabVisuals.Discard(go.GetComponent<Collider>());
                 go.transform.SetParent(root,false); go.transform.localPosition=p; go.transform.localScale=s; go.GetComponent<Renderer>().sharedMaterial=m;
             }
             var t=.06f;
@@ -363,7 +366,7 @@ namespace MoleculeLab
             Whiteboard=board;
             void Part(string n,Vector3 p,Vector3 s,Color c)
             {
-                var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=n; Destroy(go.GetComponent<Collider>());
+                var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=n; LabVisuals.Discard(go.GetComponent<Collider>());
                 go.transform.SetParent(board,false); go.transform.localPosition=p; go.transform.localScale=s; go.GetComponent<Renderer>().sharedMaterial=Paint(c,.7f);
             }
             Part("Board",new Vector3(0,0,.015f),new Vector3(2.4f,1.2f,.02f),BoardSurface);
@@ -375,7 +378,7 @@ namespace MoleculeLab
             foreach(var (x,c) in new[]{(-.5f,new Color(.1f,.25f,.75f)),(-.38f,new Color(.8f,.15f,.15f)),(-.26f,new Color(.1f,.55f,.25f))})
                 Part("Marker",new Vector3(x,-.64f,.055f),new Vector3(.1f,.018f,.018f),c);
             var text=LabVisuals.Label(board,"",new Vector3(0,.02f,.03f),.05f);
-            var face=text.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
+            var face=text.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; LabVisuals.Discard(face); }
             // Text reads from the front: its +z must point into the wall.
             text.transform.localRotation=Quaternion.Euler(0,180,0);
             text.rectTransform.sizeDelta=new Vector2(2.2f,1.1f); text.color=Ink; text.alignment=TextAlignmentOptions.TopLeft;
@@ -397,7 +400,7 @@ namespace MoleculeLab
             ReactionsWhiteboard=board;
             void Part(string n,Vector3 p,Vector3 s,Color c)
             {
-                var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=n; Destroy(go.GetComponent<Collider>());
+                var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=n; LabVisuals.Discard(go.GetComponent<Collider>());
                 go.transform.SetParent(board,false); go.transform.localPosition=p; go.transform.localScale=s; go.GetComponent<Renderer>().sharedMaterial=Paint(c,.7f);
             }
             const float w=1.35f, h=1.0f; // fits between the front wall and the atom cupboards
@@ -407,7 +410,7 @@ namespace MoleculeLab
             Part("Frame left",new Vector3(-w*.5f-.02f,0,.018f),new Vector3(.04f,h,.036f),BoardFrame);
             Part("Frame right",new Vector3(w*.5f+.02f,0,.018f),new Vector3(.04f,h,.036f),BoardFrame);
             var text=LabVisuals.Label(board,"",new Vector3(0,0,.045f),.05f); // in front of the frame, which used to hide the first letters
-            var face=text.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
+            var face=text.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; LabVisuals.Discard(face); }
             text.transform.localRotation=Quaternion.Euler(0,180,0);
             text.rectTransform.pivot=new Vector2(.5f,.5f); text.rectTransform.sizeDelta=new Vector2(w-.18f,h-.12f); text.margin=Vector4.zero; text.color=Ink; text.alignment=TextAlignmentOptions.TopLeft;
             text.enableAutoSizing=true; text.fontSizeMin=.25f; text.fontSizeMax=1.2f;
@@ -467,7 +470,7 @@ namespace MoleculeLab
             var width=columns*cell+.16f; var height=rows*cell+.3f;
             void Block(string n,Vector3 p,Vector3 s,Color c)
             {
-                var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=n; Destroy(go.GetComponent<Collider>());
+                var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=n; LabVisuals.Discard(go.GetComponent<Collider>());
                 go.transform.SetParent(board,false); go.transform.localPosition=p; go.transform.localScale=s;
                 var r=go.GetComponent<Renderer>(); r.sharedMaterial=LabVisuals.Material(c); r.shadowCastingMode=ShadowCastingMode.Off;
             }
@@ -481,7 +484,7 @@ namespace MoleculeLab
                 var p=new Vector3(left+column*cell,top-row*cell,-.006f);
                 Block("Element "+symbols[z-1],p,new Vector3(cell-gap,cell-gap,.004f),CategoryColours[ElementCategories[z-1]-'0']);
                 var text=LabVisuals.Label(board,"<size=48%>"+z+"</size>\n<b>"+symbols[z-1]+"</b>",p+new Vector3(0,0,-.006f),.05f);
-                var face=text.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
+                var face=text.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; LabVisuals.Discard(face); }
                 text.transform.localRotation=Quaternion.identity; text.rectTransform.sizeDelta=new Vector2(cell,cell); text.color=new Color(.1f,.13f,.18f);
                 text.textWrappingMode=TextWrappingModes.NoWrap;
             }
@@ -490,18 +493,18 @@ namespace MoleculeLab
             {
                 var p=new Vector3(left+2*cell,top-row*cell,-.006f);
                 Block("f-block",p,new Vector3(cell-gap,cell-gap,.004f),CategoryColours[row<6?8:9]);
-                var t=LabVisuals.Label(board,label,p+new Vector3(0,0,-.006f),.022f); var f=t.GetComponent<FaceViewer>(); if(f!=null) { f.enabled=false; Destroy(f); }
+                var t=LabVisuals.Label(board,label,p+new Vector3(0,0,-.006f),.022f); var f=t.GetComponent<FaceViewer>(); if(f!=null) { f.enabled=false; LabVisuals.Discard(f); }
                 t.transform.localRotation=Quaternion.identity; t.rectTransform.sizeDelta=new Vector2(cell,cell); t.color=new Color(.1f,.13f,.18f);
             }
             var title=LabVisuals.Label(board,"<b>PERIODIC TABLE OF THE ELEMENTS</b>",new Vector3(0,height*.5f-.1f,-.008f),.07f);
-            var tf=title.GetComponent<FaceViewer>(); if(tf!=null) { tf.enabled=false; Destroy(tf); }
+            var tf=title.GetComponent<FaceViewer>(); if(tf!=null) { tf.enabled=false; LabVisuals.Discard(tf); }
             title.transform.localRotation=Quaternion.identity; title.rectTransform.sizeDelta=new Vector2(width,.14f); title.color=new Color(.12f,.2f,.3f);
             // Colour key in the empty space above the transition metals.
             for(var i=0;i<CategoryNames.Length;i++)
             {
                 var p=new Vector3(left+(2.4f+(i%5)*1.9f)*cell,top-(.35f+(i/5)*.55f)*cell,-.006f);
                 Block("Key",p,new Vector3(cell*.35f,cell*.35f,.004f),CategoryColours[i]);
-                var k=LabVisuals.Label(board,CategoryNames[i],p+new Vector3(cell*1.05f,0,-.004f),.022f); var kf=k.GetComponent<FaceViewer>(); if(kf!=null) { kf.enabled=false; Destroy(kf); }
+                var k=LabVisuals.Label(board,CategoryNames[i],p+new Vector3(cell*1.05f,0,-.004f),.022f); var kf=k.GetComponent<FaceViewer>(); if(kf!=null) { kf.enabled=false; LabVisuals.Discard(kf); }
                 k.transform.localRotation=Quaternion.identity; k.rectTransform.sizeDelta=new Vector2(cell*1.6f,cell*.4f); k.alignment=TextAlignmentOptions.Left; k.color=new Color(.15f,.18f,.22f);
             }
         }
@@ -512,7 +515,7 @@ namespace MoleculeLab
             var door=new GameObject("Gallery door").transform; door.SetParent(transform,false); door.localPosition=bottomCentre; door.localRotation=Quaternion.Euler(0,yaw,0);
             void Part(string n,Vector3 p,Vector3 s,Color c)
             {
-                var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=n; Destroy(go.GetComponent<Collider>());
+                var go=GameObject.CreatePrimitive(PrimitiveType.Cube); go.name=n; LabVisuals.Discard(go.GetComponent<Collider>());
                 go.transform.SetParent(door,false); go.transform.localPosition=p; go.transform.localScale=s; go.GetComponent<Renderer>().sharedMaterial=LabVisuals.Material(c);
             }
             var frame=new Color(.9f,.9f,.88f); var wood=new Color(.62f,.42f,.24f);
@@ -523,7 +526,7 @@ namespace MoleculeLab
             Part("Window",new Vector3(0,1.55f,.05f),new Vector3(.3f,.45f,.01f),new Color(.75f,.88f,.95f));
             Part("Handle",new Vector3(.36f,1.02f,.065f),new Vector3(.14f,.025f,.03f),new Color(.75f,.76f,.78f));
             Part("Kick plate",new Vector3(0,.12f,.05f),new Vector3(.88f,.2f,.008f),new Color(.7f,.72f,.74f));
-            var sign=LabVisuals.Label(door,"EXIT",new Vector3(0,2.3f,.06f),.05f); var f=sign.GetComponent<FaceViewer>(); if(f!=null) { f.enabled=false; Destroy(f); }
+            var sign=LabVisuals.Label(door,"EXIT",new Vector3(0,2.3f,.06f),.05f); var f=sign.GetComponent<FaceViewer>(); if(f!=null) { f.enabled=false; LabVisuals.Discard(f); }
             sign.transform.localRotation=Quaternion.Euler(0,180,0); sign.color=new Color(.1f,.55f,.25f); sign.fontStyle=FontStyles.Bold;
         }
 
@@ -551,7 +554,7 @@ namespace MoleculeLab
             var probe=Place(kit.labCounter,"probe",Vector3.zero,180,Fit.Height,.9f,true,false);
             if(probe!=null)
             {
-                var width=Size(probe).x; Destroy(probe.gameObject); PlacedModels--;
+                var width=Size(probe).x; LabVisuals.Discard(probe.gameObject); PlacedModels--;
                 var count=Mathf.Clamp(Mathf.FloorToInt(4.2f/Mathf.Max(.3f,width)),1,4); var start=-(count-1)*width*.5f;
                 for(var i=0;i<count;i++) counters.Add(Place(kit.labCounter,"Lab counter "+(i+1),new Vector3(start+i*width,0,RearFace),180,Fit.Height,.9f,true,true));
             }
@@ -658,11 +661,11 @@ namespace MoleculeLab
             var holder=new GameObject(name).transform; holder.SetParent(transform,false);
             var model=Instantiate(prefab,holder,false); model.name=prefab.name;
             model.transform.localPosition=Vector3.zero; model.transform.localRotation=Quaternion.identity;
-            foreach(var c in model.GetComponentsInChildren<Collider>(true)) { c.enabled=false; Destroy(c); }
+            foreach(var c in model.GetComponentsInChildren<Collider>(true)) { c.enabled=false; LabVisuals.Discard(c); }
             foreach(var l in model.GetComponentsInChildren<Light>(true)) l.enabled=false;
             foreach(var b in model.GetComponentsInChildren<MonoBehaviour>(true)) b.enabled=false;
             foreach(var a in model.GetComponentsInChildren<AudioSource>(true)) a.enabled=false;
-            if(!Measure(model.transform,holder,out var bounds)) { skipped.Add(name+" (no mesh)"); Destroy(holder.gameObject); return null; }
+            if(!Measure(model.transform,holder,out var bounds)) { skipped.Add(name+" (no mesh)"); LabVisuals.Discard(holder.gameObject); return null; }
             var size=bounds.size; var scale=Vector3.one;
             switch(fit)
             {
@@ -676,7 +679,7 @@ namespace MoleculeLab
                     scale=new Vector3(px,stretch.y>0?Mathf.Clamp(stretch.y/Mathf.Max(1e-4f,size.y),.02f,40):Mathf.Min(px,pz),pz); break;
             }
             // A model lying flat or authored at a strange unit would be blown up or shrunk to nothing: skip it.
-            if(scale.x<.02f || scale.x>40 || scale.y<.02f || scale.y>40) { skipped.Add(name+" (unexpected size "+size+")"); Destroy(holder.gameObject); return null; }
+            if(scale.x<.02f || scale.x>40 || scale.y<.02f || scale.y>40) { skipped.Add(name+" (unexpected size "+size+")"); LabVisuals.Discard(holder.gameObject); return null; }
             model.transform.localScale=Vector3.Scale(model.transform.localScale,scale);
             var centre=Vector3.Scale(bounds.center,scale); size=Vector3.Scale(size,scale);
             var min=centre-size*.5f;
@@ -691,7 +694,7 @@ namespace MoleculeLab
             if(kit!=null && prefab==kit.desk) BeakerShelf.SolidCore(holder,new Vector3(0,0,backToWall?size.z*.5f:0),size);
             // Opaque furniture is drawn from both sides: some pack models have no back faces (open-backed drawers).
             foreach(var r in model.GetComponentsInChildren<Renderer>(true))
-                foreach(var m in r.materials) if(m.renderQueue<2500 && m.HasProperty("_Cull")) { m.SetFloat("_Cull",0); m.doubleSidedGI=true; }
+                foreach(var m in LabVisuals.OwnMaterials(r)) if(m.renderQueue<2500 && m.HasProperty("_Cull")) { m.SetFloat("_Cull",0); m.doubleSidedGI=true; }
             PlacedModels++;
             return holder;
         }

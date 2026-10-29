@@ -68,6 +68,8 @@ namespace MoleculeLab.Editor
                 var station=GameObject.Find("Reaction station (runtime)");
                 if(station!=null) Shot(camera,"8-reaction-station",station.transform.position+new Vector3(-.8f,.55f,.35f),station.transform.position+Vector3.up*.12f,60);
                 if(station!=null) Shot(camera,"14-reaction-corner",new Vector3(.3f,1.6f,.4f),new Vector3(3.0f,1.2f,-1.0f),75);
+                var bin=GameObject.Find("Trash bin (runtime)");
+                if(bin!=null) Shot(camera,"17-trash-bin",bin.transform.position+new Vector3(-.35f,1.35f,-1.0f),bin.transform.position+Vector3.up*.95f,55);
                 var beaker=GameObject.Find("Beaker C");
                 if(beaker!=null) Shot(camera,"7-beakers",beaker.transform.position+new Vector3(.25f,.25f,-.45f),beaker.transform.position+Vector3.up*.05f,55);
                 Debug.Log("Classroom preview saved to Documentation/Classroom. "+lab.Classroom.PlacedModels+" models placed"+

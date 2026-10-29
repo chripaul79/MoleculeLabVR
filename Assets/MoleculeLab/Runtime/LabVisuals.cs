@@ -28,6 +28,20 @@ namespace MoleculeLab
             go.GetComponent<Collider>().enabled = collider;
             return go;
         }
+        /// <summary>Destroy at runtime; DestroyImmediate in the editor's edit-mode preview of the classroom.</summary>
+        public static void Discard(Object target)
+        {
+            if(target==null) return;
+            if(Application.isPlaying) Object.Destroy(target); else Object.DestroyImmediate(target);
+        }
+        /// <summary>The renderer's own material copies (renderer.materials), without leaking them into the scene in edit mode.</summary>
+        public static Material[] OwnMaterials(Renderer renderer)
+        {
+            if(Application.isPlaying) return renderer.materials;
+            var shared=renderer.sharedMaterials; var copies=new Material[shared.Length];
+            for(var i=0;i<shared.Length;i++) if(shared[i]!=null) copies[i]=new Material(shared[i]){hideFlags=HideFlags.DontSave};
+            renderer.sharedMaterials=copies; return copies;
+        }
         public static TextMeshPro Label(Transform parent, string text, Vector3 position, float size = .04f)
         {
             var go = new GameObject("Label", typeof(TextMeshPro)); go.transform.SetParent(parent, false); go.transform.localPosition = position;

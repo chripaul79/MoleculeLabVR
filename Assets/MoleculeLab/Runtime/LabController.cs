@@ -162,7 +162,34 @@ namespace MoleculeLab
         }
         void BuildEnvironment()
         {
-            Environment=FindAnyObjectByType<LabEnvironment>();
+            BuildRoom(FindAnyObjectByType<LabEnvironment>());
+            preview=new GameObject("Bond placement feedback").AddComponent<BondPreview>(); preview.Initialize(this);
+            dynamicRoot = new GameObject("Session objects").transform; dynamicRoot.SetParent(transform);
+            twistHandle = new GameObject("Twist handle").AddComponent<InspectionHandle>(); twistHandle.Initialize(this,false);
+            bendHandle = new GameObject("Deformation handle").AddComponent<InspectionHandle>(); bendHandle.Initialize(this,true);
+            energyTool = new GameObject("Energy wand").AddComponent<EnergyTool>(); energyTool.Initialize(this);
+        }
+        /// <summary>
+        /// Editor only (edit mode): builds the room exactly as Play mode does, onto a hidden copy of the environment, so the
+        /// Scene and Game tabs show the new design. Nothing interactive starts and nothing is saved with the scene.
+        /// </summary>
+        public void BuildEditorPreview(LabEnvironment environment)
+        {
+            BuildRoom(environment);
+            dynamicRoot=new GameObject("Preview atoms").transform; dynamicRoot.SetParent(transform);
+            // Atoms in every beaker (plain spheres; the real ones are made in Play mode).
+            for(var i=0;i<Environment.runtimeSockets.Length && i<socketLayout.Length;i++)
+            {
+                var element=elements.FirstOrDefault(e=>e!=null && e.symbol==socketLayout[i]); if(element==null) continue;
+                LabVisuals.Shape(element.symbol+" atom",PrimitiveType.Sphere,dynamicRoot,Vector3.zero,Vector3.one*element.radius*2*LabVisuals.AtomScale,element.color,false).transform.position=Environment.SocketPosition(i);
+            }
+            CreateUI(); Mode=LabMode.Build; RebuildMenu();
+            Notify("Choose a goal, or drop any atom on the teal ring to build freely.");
+            Station?.Refresh(); UpdateFreeDropZone();
+        }
+        void BuildRoom(LabEnvironment environment)
+        {
+            Environment=environment;
             if(Environment==null) throw new InvalidOperationException("Install the academic lab environment using Molecule Lab > Install academic environment.");
             bench=Environment.bench; tray=Environment.tray; height=Environment.workstation.position.y;
             MakeEnvironmentSolid(); WidenBench();
@@ -186,11 +213,6 @@ namespace MoleculeLab
             BuildPhysicalControls();
             if(brightClassroom) Classroom=ClassroomBuilder.Create(Environment,classroomKit,galleryRoom!=null?galleryRoom.transform:null);
             BuildReactionCorner();
-            preview=new GameObject("Bond placement feedback").AddComponent<BondPreview>(); preview.Initialize(this);
-            dynamicRoot = new GameObject("Session objects").transform; dynamicRoot.SetParent(transform);
-            twistHandle = new GameObject("Twist handle").AddComponent<InspectionHandle>(); twistHandle.Initialize(this,false);
-            bendHandle = new GameObject("Deformation handle").AddComponent<InspectionHandle>(); bendHandle.Initialize(this,true);
-            energyTool = new GameObject("Energy wand").AddComponent<EnergyTool>(); energyTool.Initialize(this);
         }
 
         public void Notify(string message,bool success=false)
@@ -239,7 +261,7 @@ namespace MoleculeLab
             var atom=loose.First(a=>a.TokenId==seed); var start=atom.transform.position;
             Selected=Spawn(new MoleculeState(definition),BuildPosition);
             Inventory.Transfer(seed,AtomInventory.Shelf,Selected.InventoryOwner); Selected.TokenIds[definition.seedIndex]=seed;
-            loose.Remove(atom); atom.gameObject.SetActive(false); Destroy(atom.gameObject);
+            loose.Remove(atom); atom.gameObject.SetActive(false); LabVisuals.Discard(atom.gameObject);
             StartCoroutine(SeedTransfer(Selected,start)); RefreshStock();
             Notify("Build "+definition.displayName+". Electrical guides are teaching cues. Release when the ring is ready.");
         }
@@ -271,7 +293,7 @@ namespace MoleculeLab
         public void RetireLooseAtom(LooseAtom atom)
         {
             if(atom==null) return;
-            ClearPreview(atom); loose.Remove(atom); atom.gameObject.SetActive(false); Destroy(atom.gameObject); RefreshStock();
+            ClearPreview(atom); loose.Remove(atom); atom.gameObject.SetActive(false); LabVisuals.Discard(atom.gameObject); RefreshStock();
         }
         public void SetUnlimitedAtoms(bool unlimited)
         {
@@ -321,7 +343,7 @@ namespace MoleculeLab
             if(!atom.TakeFromShelf() || !Inventory.Transfer(atom.TokenId,atom.Owner,candidate.InventoryOwner)) return false;
             candidate.TokenIds[site]=atom.TokenId;
             if(!candidate.State.TryPlace(site,atom.Element,out var reason)) throw new InvalidOperationException(reason);
-            var from=atom.transform.position; loose.Remove(atom); atom.gameObject.SetActive(false); Destroy(atom.gameObject); candidate.Refresh();
+            var from=atom.transform.position; loose.Remove(atom); atom.gameObject.SetActive(false); LabVisuals.Discard(atom.gameObject); candidate.Refresh();
             candidate.AnimateSite(site,from); ClearPreview(atom); RefreshStock();
             if(!candidate.State.Complete) Notify("Bond formed. Follow the next guide.",true);
             return true;
@@ -444,7 +466,7 @@ namespace MoleculeLab
         }
         void Remove(MoleculeView view)
         {
-            view.CancelSelection(); views.Remove(view); if(Selected==view) Selected=null; view.gameObject.SetActive(false); Destroy(view.gameObject);
+            view.CancelSelection(); views.Remove(view); if(Selected==view) Selected=null; view.gameObject.SetActive(false); LabVisuals.Discard(view.gameObject);
         }
         public void BreakSelected()
         {
@@ -511,7 +533,7 @@ namespace MoleculeLab
             Resetting=true; StopAllCoroutines(); CancelInteractions(); reacting=false;
             exhibitInfoLoading.Clear(); if(hologram!=null) hologram.Hide();
             checkingStructure=false; lookupSession++; freeView=null; // destroyed with the session objects below
-            foreach(Transform child in dynamicRoot) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
+            foreach(Transform child in dynamicRoot) { child.gameObject.SetActive(false); LabVisuals.Discard(child.gameObject); }
             views.Clear(); loose.Clear(); Selected=null; achievements.Clear(); lessonStep=0; lesson.text=instructions[0];
             Inventory=new AtomInventory(socketLayout,unlimitedAtoms); Inventory.Refilled+=SpawnShelfAtom;
             Resetting=false; for(var id=0;id<Inventory.Tokens.Count;id++) SpawnShelfAtom(id); RefreshStock();
@@ -528,9 +550,9 @@ namespace MoleculeLab
         void OnApplicationFocus(bool focused) { if(!focused) CancelInteractions(); }
         void OnDestroy()
         {
-            if(preview!=null) Destroy(preview.gameObject);
-            foreach(var resource in ownedResources) if(resource!=null) Destroy(resource);
-            if(twistHandle!=null) Destroy(twistHandle.gameObject); if(bendHandle!=null) Destroy(bendHandle.gameObject); if(energyTool!=null) Destroy(energyTool.gameObject);
+            if(preview!=null) LabVisuals.Discard(preview.gameObject);
+            foreach(var resource in ownedResources) if(resource!=null) LabVisuals.Discard(resource);
+            if(twistHandle!=null) LabVisuals.Discard(twistHandle.gameObject); if(bendHandle!=null) LabVisuals.Discard(bendHandle.gameObject); if(energyTool!=null) LabVisuals.Discard(energyTool.gameObject);
         }
     }
 }

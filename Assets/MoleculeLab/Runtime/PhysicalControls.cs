@@ -152,10 +152,20 @@ namespace MoleculeLab
             rim.useWorldSpace=false; rim.loop=true; rim.positionCount=40; rim.widthMultiplier=.012f; rim.sharedMaterial=LabVisuals.Material(new Color(.8f,.84f,.86f));
             for(var i=0;i<40;i++) { var a=i*Mathf.PI*2/40; rim.SetPosition(i,new Vector3(Mathf.Cos(a)*.2f,.805f,Mathf.Sin(a)*.2f)); }
             // A label stuck on the front of the bin (facing the bench), with feedback printed underneath it.
-            LabelCraft.PaperNote(transform,"Bin label",new Vector3(0,.6f,-.201f),Quaternion.identity,new Vector2(.24f,.15f),
-                IsGallery?"<b>GALLERY</b>\n<size=60%>keep it</size>":"<b>TRASH</b>\n<size=60%>molecules or gallery exhibits</size>",.55f,null,2f);
-            // What just went in, scribbled on the label in red marker.
-            feedback=LabelCraft.Print(transform,"",new Vector3(0,.5f,-.203f),new Vector2(.22f,.04f),.2f,new Color(.75f,.12f,.08f),ClassroomBuilder.Handwriting());
+            // A sign on a short post clipped to the far side of the rim, standing up above the opening and turned towards
+            // where the player starts, so it reads across the bin without being in the way of dropping things in.
+            var spawn=FindAnyObjectByType<XROrigin>();
+            var toPlayer=transform.InverseTransformPoint(spawn!=null?spawn.transform.position:transform.position+Vector3.back); toPlayer.y=0;
+            var mount=new GameObject("Sign mount").transform; mount.SetParent(transform,false);
+            mount.localRotation=toPlayer.sqrMagnitude>1e-4f?Quaternion.LookRotation(-toPlayer.normalized):Quaternion.identity; // local -z faces the player
+            var metal=new Color(.62f,.64f,.67f);
+            LabVisuals.Shape("Rim clip",PrimitiveType.Cube,mount,new Vector3(0,.795f,.205f),new Vector3(.05f,.04f,.018f),metal,false);
+            LabVisuals.Shape("Sign post",PrimitiveType.Cylinder,mount,new Vector3(0,.88f,.212f),new Vector3(.014f,.075f,.014f),metal,false);
+            LabVisuals.Shape("Sign board",PrimitiveType.Cube,mount,new Vector3(0,1.03f,.212f),new Vector3(.27f,.17f,.008f),new Color(.2f,.22f,.25f),false);
+            LabelCraft.PaperNote(mount,"Bin sign",new Vector3(0,1.035f,.2075f),Quaternion.identity,new Vector2(.25f,.15f),
+                IsGallery?"<b>GALLERY</b>\n<size=60%>keep it</size>":"<b>TRASH</b>\n<size=60%>molecules or gallery exhibits</size>",.55f,null,0f);
+            // What just went in, scribbled on the sign in red marker.
+            feedback=LabelCraft.Print(mount,"",new Vector3(0,.975f,.2055f),new Vector2(.22f,.035f),.2f,new Color(.75f,.12f,.08f),ClassroomBuilder.Handwriting());
             var opening=new GameObject("Drop zone"); opening.transform.SetParent(transform,false);
             var trigger=opening.AddComponent<BoxCollider>(); trigger.isTrigger=true; trigger.center=new Vector3(0,.46f,0); trigger.size=new Vector3(.38f,.9f,.38f);
             opening.AddComponent<BinDropZone>().bin=this;

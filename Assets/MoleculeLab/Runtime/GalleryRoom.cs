@@ -41,7 +41,7 @@ namespace MoleculeLab
         TextMeshPro Sign(string text,Vector3 position,float size,Color color)
         {
             var label=LabVisuals.Label(transform,text,position,size);
-            var face=label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Destroy(face); }
+            var face=label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; LabVisuals.Discard(face); }
             label.transform.localRotation=Quaternion.Euler(0,180,0); // readable from inside the gallery, looking away from the bench
             label.color=color; return label;
         }
@@ -152,7 +152,7 @@ namespace MoleculeLab
         {
             var capacity=SlotsPerTable*MaximumTables;
             var shown=gallery.Entries.Skip(Mathf.Max(0,gallery.Entries.Count-capacity)).ToList();
-            foreach(var id in exhibits.Keys.Where(id=>shown.All(e=>e.id!=id)).ToList()) { var old=exhibits[id]; exhibits.Remove(id); old.gameObject.SetActive(false); Destroy(old.gameObject); }
+            foreach(var id in exhibits.Keys.Where(id=>shown.All(e=>e.id!=id)).ToList()) { var old=exhibits[id]; exhibits.Remove(id); old.gameObject.SetActive(false); LabVisuals.Discard(old.gameObject); }
             var slots=SlotPositions(Mathf.Max(1,(shown.Count+SlotsPerTable-1)/SlotsPerTable)).ToArray();
             Table(0); for(var t=1;t*SlotsPerTable<shown.Count;t++) Table(t);
             for(var i=0;i<shown.Count;i++)
@@ -250,6 +250,6 @@ namespace MoleculeLab
             transform.position=Vector3.Lerp(transform.position,slot,1-Mathf.Exp(-Time.deltaTime*6));
             if(lab==null || !lab.ReducedEffects) model.Rotate(0,Time.deltaTime*20,0,Space.World);
         }
-        void OnDestroy() { if(placard!=null) Destroy(placard.gameObject); }
+        void OnDestroy() { if(placard!=null) LabVisuals.Discard(placard.gameObject); }
     }
 }

@@ -79,7 +79,7 @@ namespace MoleculeLab
         {
             var holder=new GameObject(name).transform; holder.SetParent(parent,false); holder.localPosition=bottomCentre;
             var model=Instantiate(prefab,holder,false); model.name=prefab.name; model.transform.localRotation=Quaternion.Euler(0,180,0);
-            foreach(var c in model.GetComponentsInChildren<Collider>(true)) { c.enabled=false; Destroy(c); }
+            foreach(var c in model.GetComponentsInChildren<Collider>(true)) { c.enabled=false; LabVisuals.Discard(c); }
             foreach(var b in model.GetComponentsInChildren<MonoBehaviour>(true)) b.enabled=false;
             var any=false; var bounds=new Bounds();
             foreach(var r in model.GetComponentsInChildren<MeshRenderer>(true))
@@ -92,7 +92,7 @@ namespace MoleculeLab
                     if(!any) { bounds=new Bounds(p,Vector3.zero); any=true; } else bounds.Encapsulate(p);
                 }
             }
-            if(!any || bounds.size.x<1e-3f || bounds.size.y<1e-3f || bounds.size.z<1e-3f) { Destroy(holder.gameObject); return null; }
+            if(!any || bounds.size.x<1e-3f || bounds.size.y<1e-3f || bounds.size.z<1e-3f) { LabVisuals.Discard(holder.gameObject); return null; }
             // Scale in holder space: wrap the rotated model in a scaler so the stretch follows the holder's axes.
             var scaler=new GameObject("Fit").transform; scaler.SetParent(holder,false); model.transform.SetParent(scaler,true);
             var scale=new Vector3(size.x/bounds.size.x,size.y/bounds.size.y,size.z/bounds.size.z);
@@ -101,7 +101,7 @@ namespace MoleculeLab
             SolidCore(holder,new Vector3(0,0,0),size);
             // The table is seen from all sides: draw back faces too (the pack's drawer units are open at the back).
             foreach(var r in model.GetComponentsInChildren<Renderer>(true))
-                foreach(var m in r.materials) if(m.renderQueue<2500 && m.HasProperty("_Cull")) { m.SetFloat("_Cull",0); m.doubleSidedGI=true; }
+                foreach(var m in LabVisuals.OwnMaterials(r)) if(m.renderQueue<2500 && m.HasProperty("_Cull")) { m.SetFloat("_Cull",0); m.doubleSidedGI=true; }
             return holder;
         }
         /// <summary>
@@ -110,7 +110,7 @@ namespace MoleculeLab
         /// </summary>
         public static void SolidCore(Transform holder,Vector3 bottomCentre,Vector3 size)
         {
-            var core=GameObject.CreatePrimitive(PrimitiveType.Cube); core.name="Cupboard body"; Destroy(core.GetComponent<Collider>());
+            var core=GameObject.CreatePrimitive(PrimitiveType.Cube); core.name="Cupboard body"; LabVisuals.Discard(core.GetComponent<Collider>());
             core.transform.SetParent(holder,false); core.transform.localPosition=bottomCentre+new Vector3(0,size.y*.47f,0);
             core.transform.localScale=new Vector3(size.x*.965f,size.y*.94f,size.z*.94f);
             core.GetComponent<Renderer>().sharedMaterial=LabVisuals.Material(new Color(.86f,.84f,.79f));
@@ -123,7 +123,7 @@ namespace MoleculeLab
                 var temp=GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 glassMesh=Instantiate(temp.GetComponent<MeshFilter>().sharedMesh); glassMesh.name="Beaker glass";
                 glassMesh.colors=Enumerable.Repeat(Color.white,glassMesh.vertexCount).ToArray();
-                Destroy(temp);
+                LabVisuals.Discard(temp);
             }
             if(glassMaterial==null) { glassMaterial=new Material(Canvas.GetDefaultCanvasMaterial()); glassMaterial.name="Beaker glass"; glassMaterial.color=new Color(.75f,.92f,1f,.07f); }
             var glass=new GameObject("Glass"); glass.transform.SetParent(beaker,false);
@@ -148,7 +148,7 @@ namespace MoleculeLab
             // Clearer glass than the pack's frosted look, so the atoms inside are easy to see.
             foreach(var r in model.GetComponentsInChildren<Renderer>())
             {
-                foreach(var m in r.materials)
+                foreach(var m in LabVisuals.OwnMaterials(r))
                     if(m.renderQueue>=2900 || (m.HasProperty("_Surface") && m.GetFloat("_Surface")>.5f))
                     {
                         m.SetColor("_BaseColor",new Color(.86f,.95f,1f,.2f)); if(m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness",.97f);
@@ -158,7 +158,7 @@ namespace MoleculeLab
                     }
                 r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
             }
-            foreach(var collider in model.GetComponentsInChildren<Collider>(true)) Destroy(collider);
+            foreach(var collider in model.GetComponentsInChildren<Collider>(true)) LabVisuals.Discard(collider);
             var renderers=model.GetComponentsInChildren<Renderer>(); if(renderers.Length==0) return;
             var bounds=renderers[0].bounds; foreach(var r in renderers) bounds.Encapsulate(r.bounds);
             // Stretched to a bucket: BeakerRadius wide, BeakerHeight tall.

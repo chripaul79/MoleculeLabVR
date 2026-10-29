@@ -74,7 +74,7 @@ namespace MoleculeLab
         ElementDefinition ElementFor(string symbol) => elements.FirstOrDefault(e=>e!=null && e.symbol==symbol);
         void ConsumeLoose(LooseAtom atom)
         {
-            ClearPreview(atom); loose.Remove(atom); atom.gameObject.SetActive(false); Destroy(atom.gameObject);
+            ClearPreview(atom); loose.Remove(atom); atom.gameObject.SetActive(false); LabVisuals.Discard(atom.gameObject);
         }
         bool FreeEditable()
         {
@@ -91,7 +91,7 @@ namespace MoleculeLab
         void DestroyFreeView()
         {
             if(freeView==null) return;
-            freeView.CancelGrabs(); freeView.gameObject.SetActive(false); Destroy(freeView.gameObject); freeView=null;
+            freeView.CancelGrabs(); freeView.gameObject.SetActive(false); LabVisuals.Discard(freeView.gameObject); freeView=null;
         }
         void PrepareFreeBench()
         {
@@ -307,7 +307,7 @@ namespace MoleculeLab
                         definition=DiscoveredMolecule.Create(graph,conformer,map,result,elements,out usedConformer);
                         if(!definition.IsValid(out var error))
                         {
-                            Destroy(definition);
+                            LabVisuals.Discard(definition);
                             view.SetStatus("PubChem: "+result.title+"\nbut the lab cannot model it.",FreeBuildView.ProblemColor);
                             Notify("PubChem knows this as "+result.title+", but the lab could not build its model: "+error);
                             break;
@@ -530,7 +530,7 @@ namespace MoleculeLab
             if(!Inventory.Transfer(atom.TokenId,atom.Owner,view.InventoryOwner)) { atom.ReturnHome(); return false; }
             view.TokenIds[site]=atom.TokenId;
             if(!view.State.TryPlace(site,atom.Element,out var reason)) throw new InvalidOperationException(reason);
-            var from=atom.transform.position; ClearPreview(atom); loose.Remove(atom); atom.gameObject.SetActive(false); Destroy(atom.gameObject);
+            var from=atom.transform.position; ClearPreview(atom); loose.Remove(atom); atom.gameObject.SetActive(false); LabVisuals.Discard(atom.gameObject);
             if(view!=null) { view.Refresh(); view.AnimateSite(site,from); }
             RefreshStock(); return true;
         }

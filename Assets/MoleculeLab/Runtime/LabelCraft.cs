@@ -32,7 +32,7 @@ namespace MoleculeLab
         public static TextMeshPro Print(Transform root,string text,Vector3 position,Vector2 size,float fontSize,Color colour,TMP_FontAsset font=null,bool autoSize=true)
         {
             var label=LabVisuals.Label(root,text,position,fontSize*.1f);
-            var face=label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; Object.Destroy(face); }
+            var face=label.GetComponent<FaceViewer>(); if(face!=null) { face.enabled=false; LabVisuals.Discard(face); }
             label.transform.localRotation=Quaternion.identity; label.rectTransform.sizeDelta=size; label.color=colour;
             if(font!=null) label.font=font;
             if(autoSize) { label.enableAutoSizing=true; label.fontSizeMax=fontSize; label.fontSizeMin=fontSize*.35f; }
