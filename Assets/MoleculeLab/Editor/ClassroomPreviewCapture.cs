@@ -62,9 +62,9 @@ namespace MoleculeLab.Editor
                 Shot(camera,"3-windows",new Vector3(-1.6f,1.6f,.4f),new Vector3(2.9f,1.3f,.55f),75);
                 Shot(camera,"4-whiteboard",new Vector3(1.6f,1.6f,.4f),new Vector3(-2.9f,1.45f,.6f),75);
                 Shot(camera,"5-rear-counters",new Vector3(.2f,1.55f,1.2f),new Vector3(0,1.0f,3.2f),75);
-                Shot(camera,"6-gallery",new Vector3(.3f,1.7f,-.9f),new Vector3(0,1.2f,-4.4f),75);
-                Shot(camera,"15-gallery-entrance",new Vector3(.4f,1.55f,.9f),new Vector3(0,2.15f,-1.65f),70);
-                Shot(camera,"16-gallery-panel",new Vector3(0,1.75f,-2.6f),new Vector3(0,1.9f,-4.4f),70);
+                Shot(camera,"6-gallery",new Vector3(.3f,1.7f,-.9f-GalleryRoom.Lengthen),new Vector3(0,1.2f,GalleryRoom.RoomEnd+.05f),75);
+                Shot(camera,"15-gallery-entrance",new Vector3(.4f,1.55f,.9f),new Vector3(0,2.15f,GalleryRoom.RoomStart),70);
+                Shot(camera,"16-gallery-panel",new Vector3(0,1.75f,GalleryRoom.RoomEnd+1.85f),new Vector3(0,1.9f,GalleryRoom.RoomEnd+.05f),70);
                 var station=GameObject.Find("Reaction station (runtime)");
                 if(station!=null) Shot(camera,"8-reaction-station",station.transform.position+new Vector3(-.8f,.55f,.35f),station.transform.position+Vector3.up*.12f,60);
                 if(station!=null) Shot(camera,"14-reaction-corner",new Vector3(.3f,1.6f,.4f),new Vector3(3.0f,1.2f,-1.0f),75);

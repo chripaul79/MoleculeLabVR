@@ -17,7 +17,7 @@ namespace MoleculeLab
         // Inner faces of the room. The sci-fi shell panels sit in front of the old walls, so these move inwards when it is built.
         const float GalleryFace=2.94f, OldRearFace=3.29f, OldCeiling=2.99f, ShellDepth=.08f;
         /// <summary>The classroom is this much wider on each side than the authored 6 m room (the gallery keeps its width).</summary>
-        public const float Widen=.5f;
+        public const float Widen=.8f; // both side walls move out this far (more room for the reaction corner)
         float OldWallFace=GalleryFace;
         float WallFace=GalleryFace, RearFace=OldRearFace, CeilingUnderside=OldCeiling;
         /// <summary>True when the walls, floor and ceiling come from the lab pack.</summary>
@@ -245,6 +245,9 @@ namespace MoleculeLab
                 copy.GetComponent<Renderer>().sharedMaterial=wallPaint;
             }
             OldWallFace=GalleryFace+Widen; WallFace=OldWallFace;
+            // The lengthened part of the room (built with the gallery) gets its side walls moved out the same way.
+            foreach(var t in environment.GetComponentsInChildren<Transform>(true).Where(t=>t.name=="Lab extension wall"))
+                t.position+=env.TransformVector(new Vector3(Mathf.Sign(env.InverseTransformPoint(t.position).x)*Widen,0,0));
             // Close the strip between the wider room and the gallery opening.
             var paint=Paint(WallPaint,.2f);
             foreach(var side in new[]{-1,1})
@@ -419,7 +422,7 @@ namespace MoleculeLab
                 "    <color=#7A4A20><b>no tool</b></color>  Br2 or Cl2 adds to C=C at once\n"+
                 "<size=85%>Atoms are never lost - they only change partners.</size>";
         }
-        public const float ReactionCornerZ=-.95f; // front-right corner, clear of the atom cupboards
+        public const float ReactionCornerZ=-1.8f; // front-right corner, towards the gallery door, well clear of the atom cupboards
 
         static TMP_FontAsset handwritingFont;
         /// <summary>Patrick Hand (SIL Open Font License, Resources/Fonts), turned into a dynamic TextMeshPro font the first time it is needed.</summary>

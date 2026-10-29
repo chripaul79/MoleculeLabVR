@@ -14,7 +14,9 @@ namespace MoleculeLab
     public sealed class GalleryRoom : MonoBehaviour
     {
         public const int SlotsPerTable=12, MaximumTables=2;
-        public const float RoomStart=-1.65f, RoomEnd=-4.45f, FirstTableZ=-2.05f, TableSpacing=1.3f, TableTop=.82f;
+        /// <summary>Where the authored lab ended (its old front wall). The lab now runs on to <see cref="RoomStart"/>, where the gallery begins.</summary>
+        public const float LabFront=-1.65f, Lengthen=.9f;
+        public const float RoomStart=LabFront-Lengthen, RoomEnd=-4.45f-Lengthen, FirstTableZ=-2.05f-Lengthen, TableSpacing=1.3f, TableTop=.82f;
         static readonly Color Wall=new Color(.79f,.8f,.75f), Floor=new Color(.43f,.48f,.48f), Wood=new Color(.5f,.36f,.22f),
             Metal=new Color(.48f,.55f,.56f), Dark=new Color(.09f,.13f,.15f), Teal=new Color(.21f,.37f,.38f), Light=new Color(.95f,.97f,.86f);
         LabController lab;
@@ -48,7 +50,14 @@ namespace MoleculeLab
             var wall=environment.GetComponentsInChildren<Transform>(true).FirstOrDefault(t=>t.name=="Front wall");
             if(wall!=null) wall.gameObject.SetActive(false); else Debug.LogWarning("Gallery: 'Front wall' not found; the gallery may be hidden behind it.");
             var depth=RoomStart-RoomEnd; var centre=(RoomStart+RoomEnd)*.5f;
-            Box("Gallery floor",new Vector3(0,-.06f,centre),new Vector3(6,.12f,depth),Floor,true);
+            // One floor (and teleport area) from the old lab front to the end wall, wide enough for the widened classroom too.
+            var wide=6+2*ClassroomBuilder.Widen+.4f;
+            Box("Gallery floor",new Vector3(0,-.06f,(LabFront+RoomEnd)*.5f),new Vector3(wide,.12f,LabFront-RoomEnd),Floor,true);
+            // The lab is longer than authored: its side walls and ceiling continue from the old front to the gallery opening
+            // (the classroom moves these walls out with its own when it widens the room).
+            var strip=(LabFront+RoomStart)*.5f;
+            foreach(var x in new[]{-3f,3f}) Box("Lab extension wall",new Vector3(x,1.5f,strip),new Vector3(.12f,3,Lengthen),Wall,true);
+            Box("Lab extension ceiling",new Vector3(0,3.05f,strip),new Vector3(wide,.12f,Lengthen),Wall,true);
             Box("Gallery ceiling",new Vector3(0,3.05f,centre),new Vector3(6,.12f,depth),Wall,true);
             Box("Gallery left wall",new Vector3(-3,1.5f,centre),new Vector3(.12f,3,depth),Wall,true);
             Box("Gallery right wall",new Vector3(3,1.5f,centre),new Vector3(.12f,3,depth),Wall,true);
