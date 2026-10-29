@@ -1,43 +1,74 @@
-Current hand controls and test worksheet: [Hand interaction repair](Documentation/HAND_INTERACTION_REPAIR.md).
-
 # Molecule Lab VR
 
-**27 October (2):** endless glass beakers with smaller atoms replace the baskets; finished molecules go in the **GALLERY** or **TRASH** bin; a red **RESET** button on the bench replaces the menu reset; controller teleport; a simpler FREE BUILD panel (Fill hydrogens / Undo / Clear); unused atoms vanish after 10 s; menu tabs always switch. Only the gallery is remembered between sessions. See [Free build and PubChem](Documentation/FREE_BUILD.md#bins-reset-button-and-moving-around).
+A virtual-reality chemistry classroom for **Meta Quest 3**, built in Unity. Students pick atoms out of beakers, snap them
+together into molecules with their hands or controllers, inspect the shapes, react them at a reaction table, and keep the
+molecules they make in a gallery.
 
-**27 October:** six more elements (N, S, P, F, Cl, Br) on a second shelf to the right of the bench; baskets are unlimited by default (Settings > Atoms: unlimited/finite); finished molecules fall under gravity; and a **molecule gallery** behind you (the old front wall is now an opening) shows a copy of every molecule you complete, saved between sessions. See [Free build and PubChem](Documentation/FREE_BUILD.md#gallery-elements-and-endless-atoms).
+![The classroom](Documentation/Classroom/1-overview.png)
 
-**26 October free build:** a new FREE BUILD tab lets you build any structure by hand (drop an atom on the ring, snap more on, push atoms together for double bonds or rings); when it is complete it is checked in PubChem automatically and locked with its PubChem name, CID and 3D shape. Quest builds now request internet access. See [Free build and PubChem](Documentation/FREE_BUILD.md). Headset acceptance pending.
+## Getting started
 
-**29 September hand repair (1.1.1):** easier direct grabs, restored distance grabs and repaired ray-menu clicks, paginated controls, eleven buildable molecules and four guided reactions. Read [the updated user guide](Documentation/INTERACTION_AND_CHEMISTRY.md). Headset acceptance of this update remains pending.
+1. Install **Unity 6000.6.2f1** through Unity Hub, with **Android Build Support** (needed for the Quest).
+2. In Unity Hub choose **Add > Add project from disk** and select this folder (the one containing `Assets` and `ProjectSettings`).
+3. Open the project. The **first import takes a while** (often 10-20 minutes) because Unity builds its `Library` cache; later opens are fast.
+4. In the **Project** window go to **`Assets/Scenes`** and double-click **`MoleculeLab`** to load the scene.
+5. Press **Play**.
 
-Standalone Quest 3 teaching prototype, Unity **6000.6.2f1**. Open `Assets/Scenes/MoleculeLab.unity` and press Play. The academic room, table, shelf, baskets and background furnishings are editable in the scene; runtime creates the session atoms and control UI. Use a Quest for tracked interaction; no desktop XR simulator is enabled.
+> Make sure the `MoleculeLab` scene is the one that is open: other scenes in the project are templates and do not contain the lab.
 
-## Academic lab redesign
+The classroom is built by code when the scene runs. Outside Play mode the editor shows a preview of it (marked
+*editor only, not saved* in the Hierarchy); **Molecule Lab > Show new design in edit mode** turns that preview off if you
+need to edit the original environment.
 
-- Modern teaching room with a central bench, reachable side shelf, fixed reagent archive, element poster and instrument workstation.
-- Nine elements in endless beakers on the side shelves; every atom in play still has a tracked identity.
-- Choose a recipe to transfer its seed from the shelf. Take atoms, follow directional guides, and release when the ring says **Release to bond**.
-- Initial bonding thresholds: 18 cm preview, 5 cm snap radius and 15-degree direction tolerance, exposed on LabController. The electrical effect is a teaching cue, not simulated chemistry.
-- Keep a finished molecule by dropping it in the gallery bin, or discard it in the trash bin. The red button on the bench resets the lab (the gallery is kept).
-- Mute, reduced effects and optional lesson hints are available on the display.
+### Playing in the headset
 
-Hands and Touch Plus controllers share the XRI input modality manager. Use nearby pinch/grip to grab and ray/pinch or controller ray/trigger to press controls. Hand rays operate menus and grab objects at a distance; poke activation is disabled. Green direction guides indicate available authored sites; wrong element, direction, distance and occupied sites cannot create bonds.
+- **Quest Link / Air Link:** connect the Quest to the PC, then press Play in Unity.
+- **Standalone app:** **Molecule Lab > Build Quest APK** writes `Builds/MoleculeLab-Quest3.apk`; install it on the headset
+  (for example with Meta Quest Developer Hub). See [Quest deployment](Documentation/QUEST_BUILD.md).
 
-The catalogue includes water, methane, ethane, H2, O2, ethene, ethyne, methanol, ethanol, CO2 and benzene; one-/two-hand manipulation (0.25x–6x); ethane torsion and reversible deformation; illustrative bond breaking/rejoining; and four guided reactions: water formation, methane combustion, ethene hydrogenation and ethene hydration. In Inspect, put ethane down before using its handles or energy wand. Choose a reaction, dock its listed inputs in Build or React, select the required conditions, then activate in React.
+## What you can do
 
-## Editing and delivery
+| Area | What happens there |
+|---|---|
+| **Workbench** | Choose a goal on the menu screen: with **Guide spots** the atoms' places are shown; with **Formula only** you work out the structure yourself; **No goal** builds anything. Drop an atom on the paper build mat to start, then add atoms on the teal guide dots and direction rays. **Fill hydrogens**, **Undo last atom** and **Clear structure** are on the menu. |
+| **Beakers** | Nine elements (H, C, O, N, S, P, F, Cl, Br) in endless beakers on the side cupboards. |
+| **Inspect** | Hold a finished molecule to see its name and geometry on a hologram; ethane can be twisted and bent with the gold and blue orbs, and broken with the energy wand. |
+| **Reaction table** | Drop molecules into the glass vessel; the iPad beside it says what each tool would do. The **flame** burns fuels, the **Pd catalyst** adds H2 to C=C bonds, the **acid** adds water or makes esters, and bromine reacts with alkenes on its own. Products are worked out from the molecules' bonding, so it works for molecules you built yourself too. The red button empties the vessel. |
+| **Gallery** | Drop a finished molecule in the **GALLERY** hole on the bench to keep it; it appears on the tables in the gallery behind you, with a hologram describing it (from PubChem). Let go of an exhibit over the vessel to react a copy, or over the trash can to remove it. The gallery is saved between sessions. |
+| **Settings** | Bench height and reach, sound, effects, hints, direction rays on/off and clearing the gallery. The red **RESET LAB** button on the bench starts over (the gallery is kept). |
 
-The environment prefab is `Assets/MoleculeLab/Environment/AcademicLab.prefab`. Edit its contents or scene overrides normally. **Create chemistry content** updates definitions while preserving an existing scene. **Install academic environment** only installs when an environment is absent; it does not erase decoration.
+Hands and Touch controllers both work: pinch or grip to grab, point and pinch (or pull the trigger) to press menu
+buttons, and use the controller thumbstick to teleport.
 
-- **Molecule Lab > Build Quest APK** produces `Builds/MoleculeLab-Quest3.apk`.
-- Run **MoleculeLab.Tests** from Unity's EditMode Test Runner. The playthrough test enters Play mode.
+Molecules built freely are named through **PubChem** when the headset or PC is online; everything else works offline.
+
+## Project layout
+
+| Path | Contents |
+|---|---|
+| `Assets/Scenes/MoleculeLab.unity` | The scene to open and play. |
+| `Assets/MoleculeLab/Runtime` | Game code: building, chemistry and reaction rules, the classroom, gallery and reaction table. |
+| `Assets/MoleculeLab/Editor` | Editor tools (the **Molecule Lab** menu): Quest set-up and build, content and preview tools. |
+| `Assets/MoleculeLab/Tests` | Automated tests (Window > General > Test Runner > EditMode). |
+| `Assets/3D Laboratory Environment with Appratus` | Furniture, glassware and room models used for the classroom. |
+| `Documentation` | Guides, screenshots and reports. |
+
+## Tests
+
+Open **Window > General > Test Runner**, choose **EditMode** and run **MoleculeLab.Tests**. The chemistry and reaction
+tests finish in seconds; the playthrough tests enter Play mode and take a few minutes.
+
+## More documentation
+
+- [Interaction and chemistry guide](Documentation/INTERACTION_AND_CHEMISTRY.md)
+- [Free build and PubChem](Documentation/FREE_BUILD.md)
+- [Adding molecules and architecture](Documentation/ADDING_MOLECULES.md)
 - [Quest deployment](Documentation/QUEST_BUILD.md)
-- [Authoring and architecture](Documentation/ADDING_MOLECULES.md)
-- [Free build and PubChem identification](Documentation/FREE_BUILD.md)
+- [Evaluation worksheet](Documentation/EVALUATION_WORKSHEET.md) and [acceptance checklist](Documentation/ACCEPTANCE.md)
 - [Asset provenance](Documentation/ASSET_PROVENANCE.md)
-- [Treatment report source](Documentation/TreatmentReport/README.md)
-- [Evaluation worksheet](Documentation/EVALUATION_WORKSHEET.md)
-- [Acceptance checklist](Documentation/ACCEPTANCE.md)
-- [Verified build status](Documentation/IMPLEMENTATION_STATUS.md)
 
-Physical reach, readability, comfort and sustained performance require Quest testing. Existing template scenes and Unity Version Control metadata are preserved. Source backups are under `Backups/`.
+## Credits
+
+- Room furniture and glassware: *3D Laboratory Environment with Apparatus* (Unity Asset Store, used under the Asset Store licence).
+- Handwriting font: *Patrick Hand* (SIL Open Font License, `Assets/MoleculeLab/Resources/Fonts`).
+- Molecule names, 3D shapes and descriptions: [PubChem](https://pubchem.ncbi.nlm.nih.gov/) (U.S. National Library of Medicine).
