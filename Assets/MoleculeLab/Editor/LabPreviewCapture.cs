@@ -40,18 +40,18 @@ namespace MoleculeLab.Editor
                 camera.transform.LookAt(new Vector3(0,1.25f,1.15f));
                 camera.fieldOfView=65; camera.nearClipPlane=.03f; camera.farClipPlane=30;
                 camera.clearFlags=CameraClearFlags.SolidColor; camera.backgroundColor=new Color(.025f,.045f,.075f);
-                Save(camera,"Documentation/LabPreview.png");
+                Save(camera,"Documentation/Classroom/early-prototype/LabPreview.png");
                 var lab=UnityEngine.Object.FindAnyObjectByType<LabController>(); lab.seedTransferDuration=0;
                 lab.StartMolecule(lab.molecules.First(m=>m.id=="water"));
                 var atom=UnityEngine.Object.FindObjectsByType<LooseAtom>().First(a=>a.Element.symbol=="H" && a.OnShelf);
                 atom.TakeFromShelf(); atom.transform.position=lab.Selected.SitePosition(1)+new Vector3(0,.012f,-.012f);
                 camera.transform.position=new Vector3(-.05f,1.42f,.04f); camera.transform.LookAt(new Vector3(-.14f,1.19f,.7f)); camera.fieldOfView=55;
                 var preview=UnityEngine.Object.FindAnyObjectByType<BondPreview>(); preview.SendMessage("LateUpdate"); lab.PreviewAtom(atom);
-                Save(camera,"Documentation/BondPreview.png");
+                Save(camera,"Documentation/Classroom/early-prototype/BondPreview.png");
                 lab.ResetLab(); lab.SetMode(LabMode.React); lab.SelectReaction(lab.reactions[3]);
                 camera.transform.position=new Vector3(.05f,1.55f,-.3f); camera.transform.LookAt(lab.Environment.panelMount.position); camera.fieldOfView=49;
                 foreach(var tool in UnityEngine.Object.FindObjectsByType<EnergyTool>()) tool.SendMessage("Update");
-                Save(camera,"Documentation/ReactionMenuPreview.png");
+                Save(camera,"Documentation/Classroom/early-prototype/ReactionMenuPreview.png");
                 lab.ResetLab(); lab.StartMolecule(lab.molecules.First(m=>m.id=="benzene"));
                 for(var i=1;i<lab.Selected.Definition.atoms.Length;i++)
                 {
@@ -61,7 +61,7 @@ namespace MoleculeLab.Editor
                 lab.Selected.SendMessage("UpdateGeometry");
                 foreach(var tool in UnityEngine.Object.FindObjectsByType<EnergyTool>()) tool.SendMessage("Update");
                 camera.transform.position=new Vector3(-.1f,1.3f,-.35f); camera.transform.LookAt(lab.Selected.transform.position); camera.fieldOfView=54;
-                Save(camera,"Documentation/BenzenePreview.png");
+                Save(camera,"Documentation/Classroom/early-prototype/BenzenePreview.png");
                 Debug.Log("MOLECULE_LAB_PREVIEW_CAPTURED"); EditorApplication.Exit(0);
             }
             catch(Exception e) { Debug.LogException(e); EditorApplication.Exit(1); }
@@ -76,7 +76,7 @@ namespace MoleculeLab.Editor
             var previous=RenderTexture.active; RenderTexture.active=texture;
             var image=new Texture2D(texture.width,texture.height,TextureFormat.RGB24,false);
             image.ReadPixels(new Rect(0,0,texture.width,texture.height),0,0); image.Apply();
-            Directory.CreateDirectory("Documentation"); File.WriteAllBytes(path,image.EncodeToPNG());
+            Directory.CreateDirectory(Path.GetDirectoryName(path)); File.WriteAllBytes(path,image.EncodeToPNG());
             RenderTexture.active=previous; texture.Release(); UnityEngine.Object.Destroy(image); UnityEngine.Object.Destroy(texture);
         }
     }

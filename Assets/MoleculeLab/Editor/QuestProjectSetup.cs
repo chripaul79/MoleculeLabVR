@@ -65,7 +65,7 @@ namespace MoleculeLab.Editor
             }
             settings.renderMode = OpenXRSettings.RenderMode.SinglePassInstanced;
             EditorUtility.SetDirty(settings);
-            Directory.CreateDirectory("Documentation");
+            Directory.CreateDirectory("Logs");
             AssetDatabase.SaveAssets();
             Validate();
             var profile = AssetDatabase.FindAssets("Quest Development t:BuildProfile")
@@ -104,9 +104,9 @@ namespace MoleculeLab.Editor
             foreach (var rule in issues.Where(r => r.error && r.fixItAutomatic && r.fixIt != null)) rule.fixIt();
             issues.Clear();
             OpenXRProjectValidation.GetCurrentValidationIssues(issues, BuildTargetGroup.Android);
-            File.WriteAllLines("Documentation/QuestValidation.txt", issues.Count == 0 ? new[] { "PASS: No OpenXR project validation issues." } : issues.Select(r => (r.error ? "ERROR: " : "NOTE: ") + r.message));
+            File.WriteAllLines("Logs/QuestValidation.txt", issues.Count == 0 ? new[] { "PASS: No OpenXR project validation issues." } : issues.Select(r => (r.error ? "ERROR: " : "NOTE: ") + r.message));
             foreach (var issue in issues) Debug.LogWarning(issue.message);
-            if (issues.Any(r => r.error)) throw new Exception("Quest OpenXR validation has required errors; see Documentation/QuestValidation.txt");
+            if (issues.Any(r => r.error)) throw new Exception("Quest OpenXR validation has required errors; see Logs/QuestValidation.txt");
         }
 
         public static void CreateFoundation()
@@ -146,7 +146,7 @@ namespace MoleculeLab.Editor
                 scenes = new[] { ScenePath }, target = BuildTarget.Android,
                 locationPathName = "Builds/MoleculeLab-Quest3.apk", options = BuildOptions.Development
             });
-            File.WriteAllText("Documentation/LastBuild.txt", $"Result: {result.summary.result}\nSize: {result.summary.totalSize}\nDuration: {result.summary.totalTime}\nErrors: {result.summary.totalErrors}\nWarnings: {result.summary.totalWarnings}\n");
+            File.WriteAllText("Logs/LastBuild.txt", $"Result: {result.summary.result}\nSize: {result.summary.totalSize}\nDuration: {result.summary.totalTime}\nErrors: {result.summary.totalErrors}\nWarnings: {result.summary.totalWarnings}\n");
             if (result.summary.result != BuildResult.Succeeded) throw new Exception("Quest APK build failed");
         }
     }

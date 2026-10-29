@@ -1,3 +1,0 @@
-PASS: Quest 3 (eureka) supported.
-PASS: Meta hand-tracking permission included.
-PASS: No required Android XR software features.

@@ -26,7 +26,7 @@ namespace MoleculeLab.Editor
             // Free build's PubChem check needs network access (Player Settings > Internet Access: Require).
             var internet=entries.Any(e=>e.Name.LocalName=="uses-permission" && (string)e.Attribute(android+"name")=="android.permission.INTERNET");
             if(!internet) UnityEngine.Debug.LogWarning("INTERNET permission not found in the Unity library manifest. Free build's PubChem check needs Internet Access set to Require.");
-            File.WriteAllText("Documentation/QuestManifestValidation.txt","PASS: Quest 3 (eureka) supported.\nPASS: Meta hand-tracking permission included.\nPASS: No required Android XR software features.\n"+
+            File.WriteAllText("Logs/QuestManifestValidation.txt","PASS: Quest 3 (eureka) supported.\nPASS: Meta hand-tracking permission included.\nPASS: No required Android XR software features.\n"+
                 (internet?"PASS: INTERNET permission included (PubChem free build).\n":"WARN: INTERNET permission not seen in the library manifest; verify Internet Access = Require.\n"));
         }
     }

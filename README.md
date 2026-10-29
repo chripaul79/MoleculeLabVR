@@ -24,7 +24,7 @@ need to edit the original environment.
 
 - **Quest Link / Air Link:** connect the Quest to the PC, then press Play in Unity.
 - **Standalone app:** **Molecule Lab > Build Quest APK** writes `Builds/MoleculeLab-Quest3.apk`; install it on the headset
-  (for example with Meta Quest Developer Hub). See [Quest deployment](Documentation/QUEST_BUILD.md).
+  (for example with Meta Quest Developer Hub). See [Building for the Quest](Documentation/PROJECT_SUMMARY.md#building-for-the-quest).
 
 ## What you can do
 
@@ -60,12 +60,8 @@ tests finish in seconds; the playthrough tests enter Play mode and take a few mi
 
 ## More documentation
 
-- [Interaction and chemistry guide](Documentation/INTERACTION_AND_CHEMISTRY.md)
-- [Free build and PubChem](Documentation/FREE_BUILD.md)
-- [Adding molecules and architecture](Documentation/ADDING_MOLECULES.md)
-- [Quest deployment](Documentation/QUEST_BUILD.md)
-- [Evaluation worksheet](Documentation/EVALUATION_WORKSHEET.md) and [acceptance checklist](Documentation/ACCEPTANCE.md)
-- [Asset provenance](Documentation/ASSET_PROVENANCE.md)
+- [Project summary](Documentation/PROJECT_SUMMARY.md): how the lab works, the chemistry, the code layout, building for the Quest and tests.
+- [Screenshots](Documentation/Classroom) of the classroom, reaction table and gallery.
 
 ## Credits
 
